@@ -191,7 +191,7 @@ monogatari.script ({
 
 		async () => {
 			ObjectCounter.hide();
-			JizoGuide.next();
+			JizoGuide.next(null, 5); // in alto: la scelta INIZIA compare al centro dello schermo
 		},
 
 		'guide Ora, respira. Sarò pronto quando lo sarai tu.',

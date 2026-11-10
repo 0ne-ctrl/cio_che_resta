@@ -2208,6 +2208,36 @@ body.show-textbox .phone-toggle {
 	opacity: 1;
 }
 
+/* prefers-reduced-motion: tremori più lenti e piccoli, flicker dell'orologio sotto 1 Hz.
+   Le durate che scandiscono la storia stanno in JS e non cambiano. */
+@keyframes reduced-shake {
+	0%, 100% { transform: translate(0, 0); }
+	25%      { transform: translate(-2px, 1px); }
+	75%      { transform: translate(2px, -1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.rabbia-object-shake,
+	.word-item.game-over-shake {
+		animation: reduced-shake 400ms ease-in-out infinite;
+	}
+
+	.word-game {
+		--word-shake-x: calc(0.5px + 1px * var(--phase-pressure));
+		--word-shake-y: calc(0.25px + 0.75px * var(--phase-pressure));
+		--word-rotate-extra: calc(0.2deg + 0.4deg * var(--phase-pressure));
+	}
+
+	/* stesso elenco di .word-label: rallenta solo il tremore (secondo valore) */
+	.word-label {
+		animation-duration: 340ms, 720ms, 260ms;
+	}
+
+	.clock-glitch {
+		animation-duration: 1.2s;
+	}
+}
+
 /* --- GESTIONE CIELO NELLE VARIE SCENE CON FINESTRA --- */
 .sky{
 	position: fixed;

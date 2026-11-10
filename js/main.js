@@ -8,6 +8,16 @@ const { $_ready, $_ } = Monogatari;
 // quando finisce, è ancora nel punto in cui era partita (vedi TypeCentered e Wait).
 const storyPosition = () => `${monogatari.state ('label')}#${monogatari.state ('step')}`;
 
+// Volume impostato negli slider di Monogatari (0..1) per 'Music' o 'Sound'.
+const volumePref = (category) => {
+	const v = Number (monogatari.preference ('Volume')?.[category]);
+	return Number.isFinite (v) ? Math.min (1, Math.max (0, v)) : 1;
+};
+
+// prefers-reduced-motion: attenua (non elimina) shake, zoom e flash.
+const REDUCED_MOTION = window.matchMedia ('(prefers-reduced-motion: reduce)');
+const motionFactor = () => REDUCED_MOTION.matches ? 0.35 : 1;
+
 /*
 CLASSI CUSTOM
 */
@@ -54,7 +64,7 @@ class TypeCentered extends Monogatari.Action {
 
 			const audio = new Audio (this.sound);
 			audio.loop = true;
-			audio.volume = this.volume;
+			audio.volume = this.volume * volumePref ('Sound');
 
 			let index = 0;
 			let finishedTyping = false;
@@ -929,6 +939,7 @@ const PhoneTyping = {
     fullText: '',
     charIndex: 0,
     isAnimating: false,
+    timer: null, // prossimo carattere in coda: azzerato da _cancel()
     onComplete: null, // callback quando finisce
 	keySound: null, //reference all'audio del tap su tastiera
 	sendSound: null, //audio dell'invio
@@ -943,8 +954,15 @@ const PhoneTyping = {
 
 		this.keySound = new Audio('assets/sounds/phone_type.mp3');
 		this.sendSound = new Audio('assets/sounds/phone_send.mp3');
-		this.sendSound.volume = this.keySound.volume = 0.3;
     },
+
+	// Ferma la catena di digitazione in corso senza chiamare onComplete.
+	_cancel() {
+		clearTimeout(this.timer);
+		this.timer = null;
+		this.onComplete = null;
+		this.isAnimating = false;
+	},
 
     /**
      * Mostra il compositore e anima la scrittura del testo.
@@ -954,7 +972,8 @@ const PhoneTyping = {
      */
     show(text, speed = 80, onComplete = null) {
         if (!this.composer) this.init();
-        
+        this._cancel(); // una digitazione precedente condividerebbe charIndex
+
         this.fullText = text;
         this.currentText = '';
         this.charIndex = 0;
@@ -982,6 +1001,7 @@ const PhoneTyping = {
         this.charIndex++;
 
 		if (this.keySound){
+			this.keySound.volume = 0.3 * volumePref('Sound');
 			this.keySound.currentTime = 0;
 			this.keySound.play().catch(() => {});	//catch vuoto per ignorare gli errori 
 		}
@@ -989,18 +1009,21 @@ const PhoneTyping = {
         // Variazione casuale della velocità per realismo (±30%)
         const variation = speed * (0.7 + Math.random() * 0.6);
         
-        setTimeout(() => this._typeNextChar(speed), variation);
+        this.timer = setTimeout(() => this._typeNextChar(speed), variation);
     },
 
     /**
      * Termina l'animazione di scrittura.
      */
     _finish() {
+        this.timer = null;
         this.isAnimating = false;
         this.sendBtn.disabled = false;
-		
-		if (typeof this.onComplete === 'function') {
-            this.onComplete();
+
+		const onComplete = this.onComplete;
+		this.onComplete = null;
+		if (typeof onComplete === 'function') {
+            onComplete();
         }
     },
 
@@ -1014,6 +1037,7 @@ const PhoneTyping = {
         this.sendBtn.style.transform = 'scale(0.9)';
         setTimeout(() => {
             this.sendBtn.style.transform = '';
+			this.sendSound.volume = 0.3 * volumePref('Sound');
 			this.sendSound.currentTime = 0;
 			this.sendSound.play().catch(() => {});
         }, 100);
@@ -1023,9 +1047,9 @@ const PhoneTyping = {
      * Nasconde il compositore.
      */
     hide() {
+        this._cancel();
         if (!this.composer) return;
         this.composer.style.display = 'none';
-        this.isAnimating = false;
     }
 }
 
@@ -1253,6 +1277,7 @@ const PhoneGlitch = {
     },
 
     async sequence(bubbleEl, newText, newClass, duration, scale) {
+		scale = 1 + (scale - 1) * motionFactor(); // zoom più lieve con prefers-reduced-motion
 		this.zoomShell(duration, scale);
 		this.glitchBubble(bubbleEl);
 
@@ -1275,6 +1300,11 @@ const NightOverlay = {
 	//Posizione target (dita o mouse)
 	targetX: window.innerWidth /2,
 	targetY: window.innerHeight / 2,
+
+	rafId: null,
+	//Ultima posizione scritta nella maschera (null = maschera da riscrivere)
+	maskX: null,
+	maskY: null,
 
 	init(){
 		this.element = document.getElementById('night-overlay');
@@ -1301,8 +1331,16 @@ const NightOverlay = {
 			this.targetX = touch.clientX;
 			this.targetY = touch.clientY;
 		});
+	},
 
-		this.loop();
+	// Il loop rAF gira solo tra showNight/showTorch e hide/hideTorch (o reset debug)
+	startLoop(){
+		if (!this.rafId) this.rafId = requestAnimationFrame(() => this.loop());
+	},
+
+	stopLoop(){
+		cancelAnimationFrame(this.rafId);
+		this.rafId = null;
 	},
 
 	loop(){			
@@ -1317,7 +1355,13 @@ const NightOverlay = {
 			this.updateTorch(this.torchX, this.torchY);
 		}
 
-		requestAnimationFrame(() => this.loop());
+		this.rafId = requestAnimationFrame(() => this.loop());
+	},
+
+	clearMask(){
+		this.element.style.maskImage = 'none';
+		this.element.style.webkitMaskImage = 'none';
+		this.maskX = this.maskY = null;
 	},
 
 	showNight(){
@@ -1326,12 +1370,13 @@ const NightOverlay = {
 		this.element.classList.add('visible');
 		this.element.classList.remove('torch');
 
-		this.element.style.maskImage = 'none';
-		this.element.style.webkitMaskImage = 'none';
+		this.clearMask();
+		this.startLoop();
 	},
 
 	showTorch(){
 		this.isFrozen = false;
+		this.startLoop();
 		this.element.classList.add('visible');
 		this.element.classList.add('torch');
 
@@ -1352,6 +1397,7 @@ const NightOverlay = {
 		if(!this.element) this.init();
 		
 		this.element.classList.remove('visible');		
+		this.stopLoop();
 	},
 
 	hideTorch(){
@@ -1363,13 +1409,13 @@ const NightOverlay = {
 
 		this.playTorchSound();
 		this.element.classList.remove('torch');
-		this.element.style.maskImage = 'none';
-		this.element.style.webkitMaskImage = 'none';
+		this.clearMask();
+		this.stopLoop();
 	},
 
 	playTorchSound(){
 		this.torchSound.currentTime = 0;
-		this.torchSound.volume = 1;
+		this.torchSound.volume = volumePref('Sound');
 		this.torchSound.play();
 		this.hasPlayedSound = true;
 	},
@@ -1380,6 +1426,11 @@ const NightOverlay = {
 		if(!this.hasPlayedSound){
 			this.playTorchSound();
 		}
+
+		// Sotto mezzo pixel dall'ultima scrittura non ridisegno la maschera a schermo intero
+		if (this.maskX !== null && Math.abs(x - this.maskX) < 0.5 && Math.abs(y - this.maskY) < 0.5) return;
+		this.maskX = x;
+		this.maskY = y;
 
 		const mask = `
 			radial-gradient(
@@ -1481,9 +1532,11 @@ const Glitch={
 
 	// Valori usati dalla curva del loop (rampExponent) e dal cooldown; timing,
 	// shake e spike del loop vero e proprio stanno nelle singole fasi (phases).
+	// Shake, rotazione e stretch sono getter: con prefers-reduced-motion
+	// vengono scalati da motionFactor() (anche il maxShakePx delle fasi, in runLoop).
 	config: {
 		// Quanti px max di spostamento durante lo shake del cooldown
-		maxShakePx: 30,
+		get maxShakePx() { return 30 * motionFactor(); },
 
 		// Esponenzialità con cui cresce la curva della fase.
 		rampExponent: 2.2,
@@ -1493,11 +1546,11 @@ const Glitch={
 		rageZoomExtra: 0.055,
 
 		// Rotazione massima casuale.
-		rotationMaxDeg: 1.8,
+		get rotationMaxDeg() { return 1.8 * motionFactor(); },
 
 		// Distorsione su asse x (stretch) e y (squeeze).
-		stretchMax: 0.028,
-		squeezeMax: 0.022
+		get stretchMax() { return 0.028 * motionFactor(); },
+		get squeezeMax() { return 0.022 * motionFactor(); }
 	},
 
 	phases: [
@@ -1855,8 +1908,9 @@ const Glitch={
 
 			const vw = window.innerWidth;
 			const vh = window.innerHeight;
-			const safeScaleX = (vw + phase.maxShakePx * 2) / vw;
-			const safeScaleY = (vh + phase.maxShakePx * 2) / vh;
+			const maxShakePx = phase.maxShakePx * motionFactor();
+			const safeScaleX = (vw + maxShakePx * 2) / vw;
+			const safeScaleY = (vh + maxShakePx * 2) / vh;
 			const safeScale = Math.max(safeScaleX, safeScaleY);
 			const safeScaleProgressive = 1 + (safeScale - 1) * rampProgress;
 
@@ -1867,7 +1921,7 @@ const Glitch={
 			const totalScale = safeScaleProgressive + emotionalZoom;
 
 			let shakeStrength =
-				phase.maxShakePx *
+				maxShakePx *
 				(0.15 * this.intensity + 0.85 * Math.pow(this.intensity, 2));
 
 			shakeStrength *= rampProgress;
@@ -2129,7 +2183,8 @@ const Glitch={
 
 	renderGameOverOverlay(redProgress, blackProgress) {
 		const overlay = this.ensureGameOverOverlay();
-		const red = Math.max(0, Math.min(1, redProgress));
+		// Con prefers-reduced-motion il lampo rosso è più tenue (il nero resta pieno)
+		const red = Math.max(0, Math.min(1, redProgress)) * (REDUCED_MOTION.matches ? 0.5 : 1);
 		const black = Math.max(0, Math.min(1, blackProgress));
 
 		const innerGlow = 0.08 + red * 0.42;
@@ -2192,6 +2247,7 @@ const Glitch={
 	roomShakeQuick(duration = 400, strength = 18, zoom = 1.04) {
 		if (!this.prepareShakeWrapper()) return Promise.resolve();
 
+		strength *= motionFactor();
 		const start = performance.now();
 		return new Promise(resolve => {
 			const tick = (now) => {
@@ -2996,11 +3052,12 @@ const SceneUtility = {
 
 		if(images.some(img => img.lighted)) this.bindHoverEvents(wrapper, images);
 		
-		function loadImage(imgData, wrapper){
+		// Crea l'elemento e risolve con l'img caricata (null se fallisce): l'append
+		// avviene dopo, nell'ordine di SCENE_IMAGES, da cui dipende lo z-order.
+		function loadImage(imgData){
 			return new Promise((resolve) => {
 				const img = document.createElement('img');
 				img.id = imgData.id;
-				img.src = imgData.src;
 				img.className = 'wrapper-item';
 				img.style.pointerEvents = 'none';
 
@@ -3015,39 +3072,42 @@ const SceneUtility = {
 				if(imgData.isVisible)
 					img.classList.add('hide');
 								
-				img.onload = () => {
-					wrapper.appendChild(img);
-
-					// Cross-fade del lampeggio: copia dell'immagine con il glow
-					// "acceso" statico, subito dopo la base (il CSS .highlight + .glow-clone
-					// la fa pulsare in opacity). Vedi .glow-clone in main.css.
-					if (imgData.onClick) {
-						const glow = img.cloneNode();
-						glow.removeAttribute('id');
-						glow.className = 'wrapper-item glow-clone';
-						wrapper.appendChild(glow);
-					}
-
-					//Costruisce la mappa alpha subito dopo il caricamento dell'immagine
-					if(imgData.lighted) {
-						buildAlphaMap(img);
-						TorchGlow.add(img);
-					}
-
-					resolve();
-				};
+				img.onload = () => resolve(img);
 				
 				img.onerror = () => {
 					console.error(`Failed to load: ${imgData.src}`);
-					resolve(); // Resolve comunque per far caricare le altre immagini
+					resolve(null); // Resolve comunque per far caricare le altre immagini
 				};
+
+				img.src = imgData.src;
 			});
 		}
 
-		// Carica le immagini
-		for (const imgData of images) {
-			await loadImage(imgData, wrapper);
-		}
+		// Carica le immagini in parallelo
+		const loaded = await Promise.all(images.map(loadImage));
+
+		images.forEach((imgData, i) => {
+			const img = loaded[i];
+			if (!img) return;
+
+			wrapper.appendChild(img);
+
+			// Cross-fade del lampeggio: copia dell'immagine con il glow
+			// "acceso" statico, subito dopo la base (il CSS .highlight + .glow-clone
+			// la fa pulsare in opacity). Vedi .glow-clone in main.css.
+			if (imgData.onClick) {
+				const glow = img.cloneNode();
+				glow.removeAttribute('id');
+				glow.className = 'wrapper-item glow-clone';
+				wrapper.appendChild(glow);
+			}
+
+			//Costruisce la mappa alpha subito dopo il caricamento dell'immagine
+			if(imgData.lighted) {
+				buildAlphaMap(img);
+				TorchGlow.add(img);
+			}
+		});
 
 		// Contatore progresso: solo per le scene con più oggetti da trovare
 		// (accettazione_porta ha un solo elemento di transizione, niente contatore).
@@ -3212,6 +3272,16 @@ const SceneUtility = {
 			}
 		};
 
+		// Tap singolo: vale come puntare l'oggetto con la torcia (NightOverlay sposta
+		// già il fascio sul dito). Subito, non in rAF, così touchend sa se c'è un oggetto.
+		wrapper.addEventListener('touchstart', (e) => {
+			if (!NightOverlay.element?.classList.contains('torch')) return;
+			const touch = e.touches[0];
+			if(!touch) return;
+
+			processHover({ clientX: touch.clientX, clientY: touch.clientY });
+		});
+
 		wrapper.addEventListener('touchmove', (e) => {
 			//Sempre stesso discorso, solo se torcia attiva
 			if (!NightOverlay.element?.classList.contains('torch')) return;
@@ -3228,9 +3298,13 @@ const SceneUtility = {
 			queueHover(e.clientX, e.clientY);
 		});
 
+		// Il timer hover non si annulla al rilascio: il fascio resta sull'oggetto
+		// e il dialogo si apre anche dopo un tap breve. preventDefault sopprime il
+		// click sintetico, che arriverebbe a Monogatari durante il wait.
 		wrapper.addEventListener('touchend', (e) => {
 			if(this.currentHoveredId){
 				e.stopPropagation();
+				if (e.cancelable) e.preventDefault(); // dopo un trascinamento non è annullabile
 			}
 		});
 	},
@@ -3495,6 +3569,7 @@ const CarCrash = {
 		// Il crescendo iniziale viene troncato così il botto cade sul buio.
 		if (!this.audio) this.audio = new Audio('assets/sounds/sfx_incidente.mp3');
 		this.audio.currentTime = Math.max(0, (this.impactTime - this.duration) / 1000);
+		this.audio.volume = volumePref('Sound');
 		this.audio.play().catch(() => {});
 
 		// Bagliore fari lontani: molto sfumato, nessun bordo definito.
@@ -3545,7 +3620,8 @@ const CarCrash = {
 				const t = Math.min(elapsed / this.duration, 1);
 				// Easing cubico: parte lentissima e accelera sempre di più.
 				const e = t * t * t;
-				const scale = this.scaleFrom + (this.scaleTo - this.scaleFrom) * e;
+				// Con prefers-reduced-motion l'auto cresce meno (stessa durata)
+				const scale = this.scaleFrom + (this.scaleTo - this.scaleFrom) * motionFactor() * e;
 				img.style.transform = `translate(-50%, -50%) scale(${scale})`;
 
 				// Il glow si spegne durante tutta la crescita dell'auto, non solo a metà.
@@ -3635,9 +3711,9 @@ const PanicBreath = {
 				}
 		}
 
-		// Applica volume
-        this.inAudio.volume = this.volume;
-        this.outAudio.volume = this.volume;
+		// Applica volume (scalato dallo slider effetti a ogni respiro)
+        this.inAudio.volume = this.volume * volumePref('Sound');
+        this.outAudio.volume = this.volume * volumePref('Sound');
 
         // Durate base
         const baseIn = 0.7;
@@ -3804,10 +3880,6 @@ const BreathingGame = {
 		if (!this.inAudio) {
 			this.inAudio  = new Audio('assets/sounds/breath_in.mp3');
 			this.outAudio = new Audio('assets/sounds/breath_out.mp3');
-			// Volume ridotto rispetto a PanicBreath (0.55 vs 1.0): il respiro
-			// guidato deve essere sottile, non invasivo.
-			this.inAudio.volume  = 0.55;
-			this.outAudio.volume = 0.55;
 		}
 	},
 
@@ -4051,6 +4123,10 @@ const BreathingGame = {
 	// l'autoplay (per policy mobile/desktop).
 	// -------------------------------------------------------------------------
 	_playAudio(phase) {
+		// Volume ridotto rispetto a PanicBreath (0.55 vs 1.0): il respiro
+		// guidato deve essere sottile, non invasivo. Scalato dallo slider effetti.
+		this.inAudio.volume = this.outAudio.volume = 0.55 * volumePref('Sound');
+
 		if (phase === 'inhale') {
 			this.inAudio.currentTime = 0;
 			this.inAudio.play().catch(() => {});
@@ -4380,6 +4456,13 @@ const AudioManager = {
 	// Frequenza massima = filtro trasparente	(bypass effettivo)
 	LOWPASS_BYPASS_FREQ: 20000,
 
+	// Gain master per categoria, seguono gli slider Musica/Effetti di Monogatari.
+	// Chiavi: 'Music'/'Sound' (verso il passa-basso) e 'Sound_dry' (diretto, per il battito)
+	masters: {},
+
+	// Tracce che seguono il volume musica; tutte le altre seguono il volume effetti
+	MUSIC_TRACKS: ['rage', 'depression', 'acceptance', 'rain'],
+
 	//Mappa degli audio
 	assets: {
 		rage: 'assets/music/mus_rabbia_loop.mp3',
@@ -4429,6 +4512,34 @@ const AudioManager = {
 		return this.lowPassFilter;
 	},
 
+	/**
+	 * Restituisce (o crea) il gain master della categoria ('Music' o 'Sound').
+	 * Catena: gain traccia → master → passa-basso → destination.
+	 * Con filtered = false il master va dritto alla destination (HeartbeatManager:
+	 * il battito non è mai passato dal passa-basso).
+	 */
+	getMaster(category, filtered = true) {
+		const key = filtered ? category : `${category}_dry`;
+
+		if (!this.masters[key]) {
+			const ctx = this.getContext();
+			const master = ctx.createGain();
+			master.gain.value = volumePref(category);
+			master.connect(filtered ? this.getLowPassFilter() : ctx.destination);
+			this.masters[key] = master;
+		}
+
+		return this.masters[key];
+	},
+
+	// Riallinea i master agli slider (chiamato quando cambiano le impostazioni)
+	updateMasters() {
+		if (!this.context) return;
+		for (const [key, master] of Object.entries(this.masters)) {
+			master.gain.setValueAtTime(volumePref(key.replace('_dry', '')), this.context.currentTime);
+		}
+	},
+
 
 	/** 
 	* Converte un valore di volume in un guadagno lineare per il GainNode.
@@ -4453,10 +4564,10 @@ const AudioManager = {
 
 		const source = context.createMediaElementSource(audio);
 		const gain = context.createGain();
-		const filter = this.getLowPassFilter();	
+		const master = this.getMaster(this.MUSIC_TRACKS.includes(id) ? 'Music' : 'Sound');
 
 		source.connect(gain);
-		gain.connect(filter);
+		gain.connect(master);
 
 		this.tracks[id] = {
 			audio,
@@ -4721,13 +4832,14 @@ const HeartbeatManager = {
 	// Intervallo del timer in millisecondi (25ms = ~40 tick al secondo)
 	tickMs: 25,
 
-	// Inizializza l'AudioContext e il nodo master (pigro, al primo utilizzo)
+	// Usa l'unico AudioContext di AudioManager e crea il nodo master (pigro, al primo utilizzo).
+	// Esce nel master "Effetti" senza passa-basso, come prima (vedi AudioManager.getMaster).
 	getContext() {
 		if (!this.context) {
-			this.context = new AudioContext();
+			this.context = AudioManager.getContext();
 			this.masterGain = this.context.createGain();
 			this.masterGain.gain.value = this.volume;
-			this.masterGain.connect(this.context.destination);
+			this.masterGain.connect(AudioManager.getMaster('Sound', false));
 		}
 		return this.context;
 	},
@@ -4954,7 +5066,14 @@ function startAcceleratingClock(options = {}) {
 				skyEl.classList.toggle('active', isNight);
 			}
 
-			return { set };
+			// A fine animazione: rimuove i layer dopo la transizione di opacity (0.8s nel CSS)
+			function remove() {
+				const layers = [overlayEl, skyEl];
+				overlayEl = skyEl = null;
+				setTimeout(() => layers.forEach(el => el?.remove()), 800);
+			}
+
+			return { set, remove };
 		})();
 
 		// rampMs: durata dell'accelerazione iniziale. plateauMs: durata nominale a velocità costante.
@@ -4978,7 +5097,7 @@ function startAcceleratingClock(options = {}) {
 
 		let dayIndex = current.getDay();
 		let wasNight = isNight(current.getHours());
-		let frameId, lastTs, elapsed = 0, stopping = false;
+		let lastTs, elapsed = 0;
 
 		function render() {
 			timeEl.textContent = `${String(current.getHours()).padStart(2,'0')}:${String(current.getMinutes()).padStart(2,'0')}`;
@@ -5009,8 +5128,8 @@ function startAcceleratingClock(options = {}) {
 			// Oltre il plateau nominale: si ferma solo se è giorno, altrimenti continua un altro giro
 			const pastPlateau = elapsed >= rampMs + plateauMs;
 			if (pastPlateau && !isNight(current.getHours())) {
-				stopping = true;
 				timeEl.classList.remove('clock-glitch');
+				DayCycle.remove();
 
 				// Fissa l'offset all'ora raggiunta dall'accelerazione, così il clock
 				// normale riprende da qui invece di tornare all'ora reale.
@@ -5021,10 +5140,10 @@ function startAcceleratingClock(options = {}) {
 				return;
 			}
 
-			frameId = requestAnimationFrame(loop);
+			requestAnimationFrame(loop);
 		};
 
-		frameId = requestAnimationFrame(loop);
+		requestAnimationFrame(loop);
 	});
 }
 
@@ -5326,11 +5445,12 @@ const JizoGuide = {
 		this.element.classList.add('visible');
 	},
 
-	// Fluttua verso il lato opposto (o quello forzato con side: 'left'/'right')
-	next(side){
+	// Fluttua verso il lato opposto (o quello forzato con side: 'left'/'right');
+	// top (in %) forza l'altezza invece di prendere la prossima di tops
+	next(side, top){
 		this.init();
 		this.side = side || (this.side === 'left' ? 'right' : 'left');
-		const top = this.tops[this.step++ % this.tops.length];
+		top ??= this.tops[this.step++ % this.tops.length];
 		this._apply(this.side === 'left' ? '6%' : 'calc(96% - var(--jizo-w))', `${top}%`, 'none');
 		this.element.classList.add('visible');
 	},
@@ -5813,6 +5933,7 @@ const DebugMenu = {
 		// Riporta la torcia allo stato spento e bloccato.
 		NightOverlay.isFrozen = true;
 		NightOverlay.hasPlayedSound = false;
+		NightOverlay.stopLoop();
 
 		// Rimuove buio/maschera torcia dal DOM, se presenti.
 		const overlay = NightOverlay.element || document.getElementById('night-overlay');
@@ -5821,6 +5942,7 @@ const DebugMenu = {
 			overlay.style.maskImage = 'none';
 			overlay.style.webkitMaskImage = 'none';
 		}
+		NightOverlay.maskX = NightOverlay.maskY = null;
 		TorchHint.dismiss();
 		TorchGlow.clear();
 	},
@@ -6055,8 +6177,19 @@ $_ready (() => {
 		// Il toggle e' indipendente dal telefono: decide solo quando mostrare il pulsante e il badge.
 		PhoneToggle.init();
 
+		// Slider volume delle impostazioni: il motore aggiorna la preferenza solo su
+		// 'change' (dopo questo listener nel caso di 'input'), quindi su 'input' la
+		// allineiamo noi per sentire subito il cambio anche sull'audio Web Audio.
+		['input', 'change'].forEach(type => document.addEventListener(type, (e) => {
+			const slider = e.target.closest?.('[data-action="set-volume"]');
+			if (!slider) return;
+			const category = { music: 'Music', sound: 'Sound' }[slider.dataset.target];
+			if (!category) return;
+			monogatari.preference('Volume')[category] = parseFloat(slider.value);
+			AudioManager.updateMasters();
+		}));
 
-		
+
 		//Cambia automaticamente la classe del body in base al nome dello speaker attivo, per permettere stili dinamici (es. ombra vs tu)
 		const speakerClassMap = {
 			'Tu': 'speaker-dad',
