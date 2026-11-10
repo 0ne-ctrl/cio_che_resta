@@ -225,7 +225,7 @@ monogatari.script ({
 			showTextBox();
 		},
 
-		'guide A seconda delle scelte che farai, la storia si svilupperà in un modo diverso.',
+		'guide Ogni tanto ti verrà chiesto di scegliere: non ci sono risposte giuste o sbagliate, solo la tua.',
 
 		async () => {
 			hideTextBox(false);
@@ -402,7 +402,7 @@ monogatari.script ({
 
 	'DialogoTorcia_Pianta': [
 		() => showTextBox(),
-		'dad <div style="color: #000000;">.</div>',
+		'clear',
     	'dad Dovrei annaffiarla, ha bisogno di luce, sta perdendo tutte le foglie.',
 		'dad Oggi lo faccio, devo solo organizzarmi meglio, non voglio che si secchi del tutto.',
 		'dad Sì… sì… lo farò dopo, dopo che mi sarò alzato.',
@@ -415,7 +415,7 @@ monogatari.script ({
 
 	'DialogoTorcia_Cornice': [
 		() => showTextBox(),
-		'dad <div style="color: #000000;">.</div>',
+		'clear',
     	'dad Quanta polvere… non si vede neanche più la fotografia.',
 		'dad Sei così felice lì, quel giorno al parco ci siamo divertiti molto, abbiamo preso un gelato, passeggiato e cantato le tue canzoni preferite.',
 		'dad Dovremmo rifarlo!',
@@ -431,7 +431,7 @@ monogatari.script ({
 
 	'DialogoTorcia_Porta': [
 		() => showTextBox(),
-		'dad <div style="color: #000000;">.</div>',
+		'clear',
     	'dad Mi sento così stanco, non ho voglia di uscire.',
 		'dad Non so neanche che ore sono.',
 		'dad Potrei dormire ancora un po’.',
@@ -446,7 +446,7 @@ monogatari.script ({
 
 	'DialogoTorcia_Mobile': [
 		() => showTextBox(),
-		'dad <div style="color: #000000;">.</div>',
+		'clear',
     	'dad Ti ho comprato una nuova maglietta, sono sicuro che ti piacerà.',
 		'dad È verde, il tuo colore preferito.',
 		'dad …',
@@ -977,7 +977,7 @@ monogatari.script ({
 
 	'DialogoGlitch_Fase1': [
 		() => { WordsGame.lock(); showTextBox(); },
-		'<div style="color: #000000;">.</div>',
+		'clear',
 		'dad Guardami, guardami!',
 		'dad Non riesco neanche a prendermi cura di una stupida pianta!',
 		'dad Dai, forza, appassisci!',
@@ -1134,7 +1134,7 @@ monogatari.script ({
 
 	'DialogoContrattazione_Cornice': [
 		() => showTextBox(),
-		'<div style="color: #000000;">.</div>',
+		'clear',
 		'dad Mi dispiace… mi dispiace così tanto.',
 		'dad Non volevo, non doveva rompersi.',
 		'dad Non sei tu, non sono arrabbiato con te, non sei neanche qui…',
@@ -1151,7 +1151,7 @@ monogatari.script ({
 
 	'DialogoContrattazione_Vestiti': [
 		() => showTextBox(),
-		'<div style="color: #000000;">.</div>',
+		'clear',
 		'dad Dov’è finita la tua maglietta nuova?',
 		'dad Ci sono troppi vestiti, non la trovo neanche più.',
 		'dad C’è troppo disordine qui dentro… ecco, piegandoli sembra già più ordinato, una cosa alla volta, giusto?',
@@ -1167,7 +1167,7 @@ monogatari.script ({
 
 	'DialogoContrattazione_Pianta':[
 		() => showTextBox(),
-		'<div style="color: #000000;">.</div>',
+		'clear',
 		'dad Mi sono poi scordato di annaffiarla, se non lo faccio adesso non lo faccio più.',
 		'dad Ecco, così va molto meglio.',
 		'dad Guarda quanta luce che entra, sembra una bella giornata, oggi.',
@@ -1831,6 +1831,8 @@ monogatari.script ({
 			doorLayer.className = 'wrapper-item';
 			doorLayer.style.position = 'fixed';
 			doorLayer.style.zIndex = '10';
+			// Full-screen: finché non è il suo turno lascia passare i tap (avanzamento delle battute)
+			doorLayer.style.pointerEvents = 'none';
 			doorLayer.style.transformOrigin = 'center center';
 			doorLayer.style.transform = 'scale(1.15)';
 			doorLayer.style.opacity = '0';
@@ -1874,6 +1876,11 @@ monogatari.script ({
 			document.getElementById('butterflies-layer')?.classList.add('visible');
 		},
 		'wait 4000',
+		// Chiude la promessa fatta all'Ombra in Depressione ("Cerca le piccole cose colorate")
+		() => showTextBox(),
+		'dad Le farfalle…',
+		'dad Ti ho trovato.',
+		() => hideTextBox(false),
 		// Zoom-out finito: la porta lampeggia (stessa meccanica .highlight degli
 		// oggetti di scena) e i titoli partono solo al click sulla porta.
 		async () => {
@@ -1882,6 +1889,7 @@ monogatari.script ({
 
 			doorLayer.classList.add('clickable-object', 'highlight');
 			doorLayer.style.cursor = 'pointer';
+			doorLayer.style.pointerEvents = 'auto';
 
 			await new Promise(resolve => {
 				doorLayer.addEventListener('click', (e) => {

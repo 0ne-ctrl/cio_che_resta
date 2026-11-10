@@ -321,6 +321,28 @@ class PhoneChoice extends Monogatari.Action {
 monogatari.registerAction (TypeCentered);
 monogatari.registerAction (PhoneChoice);
 
+// I loop di attesa (wait_torcia, wait_contrattazione, wait_glitch, wait_accettazione)
+// restano quasi sempre dentro un 'wait 300'. Se nel frattempo un oggetto fa partire
+// 'jump Dialogo…', allo scadere il wait dell'engine avanzava comunque di un passo,
+// saltando la prima battuta del dialogo. Qui il wait avanza solo se la storia è
+// ancora nel label/step in cui era partito. (Patch a runtime: engine/ non si tocca.)
+{
+	const WaitAction = monogatari.action ('Wait');
+	const position = () => `${monogatari.state ('label')}#${monogatari.state ('step')}`;
+	const originalApply = WaitAction.prototype.apply;
+	const originalDidApply = WaitAction.prototype.didApply;
+
+	WaitAction.prototype.apply = function (...args) {
+		this._startedAt = position ();
+		return originalApply.apply (this, args);
+	};
+
+	WaitAction.prototype.didApply = function (...args) {
+		if (this._startedAt !== position ()) return Promise.resolve ({ advance: false });
+		return originalDidApply.apply (this, args);
+	};
+}
+
 /*
 OGGETTI CUSTOM
 */
