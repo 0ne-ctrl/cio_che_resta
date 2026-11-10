@@ -1384,6 +1384,7 @@ const NightOverlay = {
 
 		// Hint "esplora la stanza" solo la prima volta, finché non evidenzia qualcosa
 		if (!monogatari.storage().clickedObjects.length) TorchHint.arm();
+		TorchGlow.show();
 
 		// Debug sui click
 		// document.addEventListener("click", (e) => {
@@ -1402,6 +1403,7 @@ const NightOverlay = {
 		if(!this.element) this.init();
 
 		TorchHint.dismiss();
+		TorchGlow.clear();
 
 		this.playTorchSound();
 		this.element.classList.remove('torch');
@@ -1464,6 +1466,37 @@ const NightOverlay = {
 			else
 				obj.classList.remove('highlight');
 		})
+	}
+};
+
+// Alone tenue sopra il buio attorno agli oggetti della torcia ancora da esplorare.
+// I cloni sono sagome nere (brightness 0) con contorno bianco, in un layer sopra
+// #night-overlay con mix-blend-mode: screen: il nero non schiarisce nulla, quindi
+// l'oggetto resta al buio e si accende solo il bordo. Visto il dialogo, l'alone si spegne.
+const TorchGlow = {
+	layer: null,
+
+	add(img) {
+		if (!this.layer) {
+			this.layer = document.createElement('div');
+			this.layer.id = 'torch-glow-layer';
+			document.body.appendChild(this.layer);
+		}
+		const glow = img.cloneNode();
+		glow.removeAttribute('id');
+		delete glow.dataset.lighted;
+		glow.className = 'wrapper-item torch-glow';
+		glow.dataset.for = img.id;
+		this.layer.appendChild(glow);
+	},
+
+	show() { this.layer?.classList.add('visible'); },
+
+	done(id) { this.layer?.querySelector(`[data-for="${id}"]`)?.remove(); },
+
+	clear() {
+		this.layer?.remove();
+		this.layer = null;
 	}
 };
 
@@ -3022,6 +3055,7 @@ const SceneUtility = {
 	},
 
 	async loadDetails(typeOfItems) {
+		TorchGlow.clear(); // niente aloni rimasti da un caricamento precedente
 		// // Carica o crea il wrapper
 		// let wrapper = document.getElementById('details-wrapper');
 		
@@ -3145,8 +3179,10 @@ const SceneUtility = {
 					}
 
 					//Costruisce la mappa alpha subito dopo il caricamento dell'immagine
-					if(imgData.lighted)
+					if(imgData.lighted) {
 						buildAlphaMap(img);
+						TorchGlow.add(img);
+					}
 
 					// console.log(img);
 					resolve();
@@ -3264,6 +3300,7 @@ const SceneUtility = {
 			sky.innerHTML = ``;
 
 		ObjectCounter.hide();
+		TorchGlow.clear();
 	},
 
 	restoreBackgroundFromGlitch() {
@@ -3475,6 +3512,7 @@ const SceneUtility = {
 
 		//Tolgo l'oggetto dalla lista di oggetti puntabili
 		element.dataset.lighted = 'false';
+		TorchGlow.done(imgData.id);
 
 		//Blocco monogatari temporaneamente per evitare che gli arrivino click inaspettati
 		monogatari.global('block', true);
@@ -6126,6 +6164,8 @@ const DebugMenu = {
 			overlay.style.maskImage = 'none';
 			overlay.style.webkitMaskImage = 'none';
 		}
+		TorchHint.dismiss();
+		TorchGlow.clear();
 
 		// Pulisce oggetti cliccabili e pannelli dettaglio della scena torcia.
 		// hideClickableObjects();
