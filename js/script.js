@@ -1668,11 +1668,6 @@ monogatari.script ({
 			document.getElementById('butterflies-layer')?.classList.add('visible');
 		},
 		'wait 4000',
-		// Chiude la promessa fatta all'Ombra in Depressione ("Cerca le piccole cose colorate")
-		() => showTextBox(),
-		'dad Le farfalle…',
-		'dad Ti ho trovato.',
-		() => hideTextBox(false),
 		// Zoom-out finito: la porta lampeggia (stessa meccanica .highlight degli
 		// oggetti di scena) e i titoli partono solo al click sulla porta.
 		async () => {
