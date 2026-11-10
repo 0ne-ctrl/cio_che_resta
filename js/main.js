@@ -2,30 +2,11 @@
 /* global Monogatari */
 /* global monogatari */
 
-/**
- * =============================================================================
- * This is the file where you should put all your custom JavaScript code,
- * depending on what you want to do, there are 3 different places in this file
- * where you can add code.
- *
- * 1. Outside the $_ready function: At this point, the page may not be fully
- *    loaded yet, however you can interact with Monogatari to register new
- *    actions, components, labels, characters, etc.
- *
- * 2. Inside the $_ready function: At this point, the page has been loaded, and
- *    you can now interact with the HTML elements on it.
- *
- * 3. Inside the init function: At this point, Monogatari has been initialized,
- *    the event listeners for its inner workings have been registered, assets
- *    have been preloaded (if enabled) and your game is ready to be played.
- *
- * You should always keep the $_ready function as the last thing on this file.
- * =============================================================================
- **/
-
 const { $_ready, $_ } = Monogatari;
 
-// 1. Outside the $_ready function:
+// Posizione corrente nella storia: serve a capire se un'azione asincrona,
+// quando finisce, è ancora nel punto in cui era partita (vedi TypeCentered e Wait).
+const storyPosition = () => `${monogatari.state ('label')}#${monogatari.state ('step')}`;
 
 /*
 CLASSI CUSTOM
@@ -54,6 +35,8 @@ class TypeCentered extends Monogatari.Action {
 	}
 
 	apply () {
+		this._startedAt = storyPosition ();
+
 		return new Promise ((resolve) => {
 			const root = document.querySelector ('#monogatari') ?? document.body;
 
@@ -95,6 +78,8 @@ class TypeCentered extends Monogatari.Action {
 			};
 
 			const closeAndContinue = () => {
+				// Chiuso dal reset del debug menu (vedi DebugMenu.resolveCenteredText).
+				this._aborted = container.dataset.aborted === 'true';
 				document.removeEventListener ('keydown', onKey);
 				container.remove ();
 				resolve ();
@@ -137,8 +122,11 @@ class TypeCentered extends Monogatari.Action {
 	}
 
 	didApply () {
+		// Se la storia è saltata altrove, o sta per farlo perché il debug menu ha
+		// chiuso il testo prima del jump, non avanzare di un passo: didApply gira
+		// subito dopo la chiusura, prima che il jump cambi label.
 		return Promise.resolve ({
-			advance: true
+			advance: !this._aborted && this._startedAt === storyPosition ()
 		});
 	}
 
@@ -265,8 +253,6 @@ class PhoneChoice extends Monogatari.Action {
 				await monogatari.run (choice.doAction);
 
 				//se serve, lavorare direttamente su apply o si sminchiano tutti i tempi di gioco, non usare ASSOLUTAMENTE run('next')
-				// if(!choice.doAction.trim().startsWith('jump'))
-				// 	monogatari.run('next');
 			}
 		} catch (error) {
 			monogatari.global ('block', false);
@@ -328,17 +314,16 @@ monogatari.registerAction (PhoneChoice);
 // ancora nel label/step in cui era partito. (Patch a runtime: engine/ non si tocca.)
 {
 	const WaitAction = monogatari.action ('Wait');
-	const position = () => `${monogatari.state ('label')}#${monogatari.state ('step')}`;
 	const originalApply = WaitAction.prototype.apply;
 	const originalDidApply = WaitAction.prototype.didApply;
 
 	WaitAction.prototype.apply = function (...args) {
-		this._startedAt = position ();
+		this._startedAt = storyPosition ();
 		return originalApply.apply (this, args);
 	};
 
 	WaitAction.prototype.didApply = function (...args) {
-		if (this._startedAt !== position ()) return Promise.resolve ({ advance: false });
+		if (this._startedAt !== storyPosition ()) return Promise.resolve ({ advance: false });
 		return originalDidApply.apply (this, args);
 	};
 }
@@ -482,7 +467,6 @@ const PhoneUI = {
         // Chiudendo il telefono disattiviamo anche i click delle scelte telefoniche.
         this.layer.classList.remove('visible', 'choice-active');
         this.layer.setAttribute('aria-hidden', 'true');
-        // this.stopVibration();
         this.stopClock();
 
 		if (typeof PhoneToggle !== 'undefined') {
@@ -584,12 +568,11 @@ const PhoneUI = {
         this.chat.scrollTop = this.chat.scrollHeight;
     },
 
-	addNotification(notification = {}, clickable = true, silent = false) {
+	addNotification(notification = {}, silent = false) {
 		if (!this.layer) this.init();
 
 		const title = notification.title ?? this.getContactName();
 		const body = notification.body ?? '';
-		const notify = notification.notify ?? true;
 
 		this.notificationId += 1;
 
@@ -597,7 +580,6 @@ const PhoneUI = {
 			id: this.notificationId,
 			title,
 			body,
-			clickable,
 			silent
 		});
 
@@ -754,25 +736,6 @@ const PhoneUI = {
 
 		this.showChatView({ markNotificationsAsRead: true });
 	},
-
-    // vibrate(duration = 900) {
-    //     if (!this.layer) this.init();
-
-    //     this.shell.classList.add('vibrating');
-
-    //     if (navigator.vibrate) {
-    //         navigator.vibrate([200, 100, 200]);
-    //     }
-
-    //     setTimeout(() => {
-    //         this.stopVibration();
-    //     }, duration);
-    // },
-
-    // stopVibration() {
-    //     if (!this.shell) return;
-    //     this.shell.classList.remove('vibrating');
-    // },
 
     startClock() {
         this.updateClock();
@@ -1328,7 +1291,6 @@ const NightOverlay = {
 		document.addEventListener('touchstart', (e) => {
 			if(!this.element.classList.contains('torch')) return;
 			const touch = e.touches[0];
-			//this.updateTorch(touch.clientX, touch.clientY);	//old
 			this.targetX = touch.clientX;
 			this.targetY = touch.clientY;
 		});
@@ -1336,7 +1298,6 @@ const NightOverlay = {
 		document.addEventListener('touchmove', (e) => {
 			if(!this.element.classList.contains('torch')) return;
 			const touch = e.touches[0];
-			// this.updateTorch(touch.clientX, touch.clientY);	//old
 			this.targetX = touch.clientX;
 			this.targetY = touch.clientY;
 		});
@@ -1385,11 +1346,6 @@ const NightOverlay = {
 		// Hint "esplora la stanza" solo la prima volta, finché non evidenzia qualcosa
 		if (!monogatari.storage().clickedObjects.length) TorchHint.arm();
 		TorchGlow.show();
-
-		// Debug sui click
-		// document.addEventListener("click", (e) => {
-   		// 	console.log("CLICK SU ELEMENTO:", e.target);
-		// });
 	},
 
 	hide(){
@@ -1449,23 +1405,6 @@ const NightOverlay = {
 
 		this.element.style.maskImage = mask;
         this.element.style.webkitMaskImage = mask;
-
-		document.querySelectorAll('.clickable-object').forEach(obj => {
-			const rect = obj.getBoundingClientRect();
-
-			const objCenterX = rect.left + rect.width / 2;
-			const objCenterY = rect.top + rect.height / 2;
-
-			const dx = objCenterX - x;
-			const dy = objCenterY - y;
-
-			const distance = Math.sqrt(dx*dx + dy*dy);
-
-			if(distance < this.radius)
-				obj.classList.add('highlight');
-			else
-				obj.classList.remove('highlight');
-		})
 	}
 };
 
@@ -1534,36 +1473,19 @@ const Glitch={
 	intensity: 0,
 	currentPhaseIndex: 0,
 	phaseResolved: false,
-	zoom: 1,
 	gameOverOverlay: null,
-
-	//L'ordine è importante, è dal z-index inferiore al superiore.
-	//Se ci sono altri elementi nel DOM in questa scena a cui aggiungere l'animazione di shake, aggiungere qui.
-	sceneLayerSelectors: [
-		"#sky",
-		"#background",
-		"#details-wrapper"
-	],
 
 	shakeViewport: null,
 	shakeWrapper: null,
-	originalLayerPositions: new Map(),
 	originalWrapperTransform: "",
 
+	// Valori usati dalla curva del loop (rampExponent) e dal cooldown; timing,
+	// shake e spike del loop vero e proprio stanno nelle singole fasi (phases).
 	config: {
-		// Quanto velocemente cresce la rabbia.
-		intensityStep: 0.009,
-
-		// Timing generale del loop.
-		baseDelay: 90,
-		minDelay: 35,
-		delayRamp: 58,
-
-		// Quanti px max di spostamento durante lo shake dello schermo
+		// Quanti px max di spostamento durante lo shake del cooldown
 		maxShakePx: 30,
 
-		// Tempo di zoom e esponenzialità con cui cresce.
-		rampDuration: 10000,
+		// Esponenzialità con cui cresce la curva della fase.
 		rampExponent: 2.2,
 
 		// Zoom emotivo: piccolo all'inizio, poi cresce di più nella fase finale.
@@ -1575,11 +1497,7 @@ const Glitch={
 
 		// Distorsione su asse x (stretch) e y (squeeze).
 		stretchMax: 0.028,
-		squeezeMax: 0.022,
-
-		// Ogni tanto inserisce un colpo più sporco e improvviso.
-		spikeChance: 0.16,
-		spikeMultiplier: 1.65
+		squeezeMax: 0.022
 	},
 
 	phases: [
@@ -1588,7 +1506,6 @@ const Glitch={
 			timeLimit: 10000,
 			spawnDelay: 850,
 			intensityStart: 0.14,
-			intensityStepMultiplier: 0.9,
 			baseDelay: 90,
 			minDelay: 46,
 			delayRamp: 42,
@@ -1603,7 +1520,6 @@ const Glitch={
 			timeLimit: 9000,
 			spawnDelay: 600,
 			intensityStart: 0.32,
-			intensityStepMultiplier: 1.22,
 			baseDelay: 72,
 			minDelay: 34,
 			delayRamp: 56,
@@ -1618,7 +1534,6 @@ const Glitch={
 			timeLimit: 8000,
 			spawnDelay: 420,
 			intensityStart: 0.52,
-			intensityStepMultiplier: 1.55,
 			baseDelay: 56,
 			minDelay: 22,
 			delayRamp: 72,
@@ -1672,8 +1587,6 @@ const Glitch={
 		if (!viewport.contains(wrapper)) {
 			viewport.appendChild(wrapper);
 		}
-
-		this.originalLayerPositions.clear();
 
 		layers.forEach(layer => {
 			const clone = layer.cloneNode(true);
@@ -1770,7 +1683,6 @@ const Glitch={
 		this.shakeViewport = null;
 		this.shakeWrapper = null;
 		this.originalWrapperTransform = "";
-		this.originalLayerPositions.clear();
 	},
 
 //INIZIO GLITCH
@@ -1878,14 +1790,6 @@ const Glitch={
 
 	//Fa partire la fase
 	beginPhase(phase) {
-		//old
-		// this.phaseResolved = false;
-		// this.intensity = 0; //era phase.intensityStart, provo a far partire sempre da zero
-		// this.startTime = performance.now();
-		// this.runLoop(phase);
-
-
-		//New
 		this.phaseResolved= false;
 		this.startTime = performance.now();
 
@@ -1944,11 +1848,7 @@ const Glitch={
 			// cresce lentamente all'inizio e accelera verso la fine.
 			const rampProgress = Math.pow(phaseProgress, this.config.rampExponent);
 
-			// // L'intensità parte dal valore minimo della fase
-			// // e arriva gradualmente a 1 man mano che si esaurisce il tempo.
-			// this.intensity = phase.intensityStart + (1 - phase.intensityStart) * rampProgress;	
-
-			// Nuovo: parte da 0 e arriva a 1, ma la velocità è data da intensityStart
+			// Parte da 0 e arriva a 1, ma la velocità è data da intensityStart
 			const speedFactor = 1 - phase.intensityStart; // più intensityStart è alto, più il boost è piccolo
 			const boostedProgress = rampProgress / (rampProgress + speedFactor * (1 - rampProgress));
 			this.intensity = boostedProgress;
@@ -2016,21 +1916,18 @@ const Glitch={
 		clearTimeout(this.timer);
 		this.timer = null;
 		WordsGame.clearPhasePressure();
-
-		// //Decelera verso 60BPM in 2 secondi
-		// HeartbeatManager.decelerate(75, 0.5);
 	},
 
 	async playFirstPhaseFailFeedback() {
 		// Primo step: shake percepibile, per comunicare il fallimento.
 		WordsGame.shakeVisibleWords();
-		await this.wait(520);
+		await sleep(520);
 
 		// Secondo step: invece di sparire di colpo, le parole si dissolvono.
 		await WordsGame.fadeOutVisibleWords(280);
 
 		// Piccola pausa su schermo libero per far "sedimentare" il fallimento.
-		await this.wait(260);
+		await sleep(260);
 	},	
 	
 	async playRestartFadeOut() {
@@ -2039,7 +1936,7 @@ const Glitch={
 		this.renderGameOverOverlay(1, 1);
 
 		// Piccola pausa tecnica per evitare micro-flash tra i frame.
-		await this.wait(100);
+		await sleep(100);
 
 		// Dissolviamo contemporaneamente nero e rosso fino a tornare
 		// alla scena completamente pulita, PRIMA del restart del minigioco.
@@ -2271,10 +2168,6 @@ const Glitch={
 		});
 	},
 
-	wait(ms) {
-		return new Promise((resolve) => setTimeout(resolve, ms));
-	},
-
 	async playGameOverSequence() {
 
 		// Fermo il battito con fadeOut mentre parte il rosso
@@ -2293,7 +2186,7 @@ const Glitch={
 		this.renderGameOverOverlay(1, 1);
 
 		// Pausa nera finale per dare respiro e rendere il reset più cinematografico
-		await this.wait(1400);
+		await sleep(1400);
 	},
 
 	roomShakeQuick(duration = 400, strength = 18, zoom = 1.04) {
@@ -2318,7 +2211,7 @@ const Glitch={
 	// Fade opacity 0→1→0 con durate asimmetriche (in lento, out brusco)
 	fadeSwapOverlay(fromOp, toOp, duration) {
 		const el = document.getElementById('rage-swap-overlay');
-		if (!el) return this.wait(duration);
+		if (!el) return sleep(duration);
 
 		const start = performance.now();
 		return new Promise(resolve => {
@@ -2373,7 +2266,7 @@ const Glitch={
 			await this.roomShakeQuick(1500);
 		} else {
 			el.classList.add('rabbia-object-shake');
-			await this.wait(1500);
+			await sleep(1500);
 			el.classList.remove('rabbia-object-shake');
 		}
 
@@ -2475,12 +2368,6 @@ const WordsGame = {
 
 			this.showWords(phase, currentRunId);
 		});
-	},
-
-	clear() {
-		if (!this.element) return;
-		this.element.innerHTML = "";
-		this.activeWords = 0;
 	},
 
 	end() {
@@ -2944,12 +2831,6 @@ const WordsGame = {
 
 };
 
-//TODO - Adjustments tempi minigioco
-//	   - Creazione di un'animazione di "game over" quando si resetta alla prima fase (capire se voluto)
-//	   - Mini tutorial per far capire all'utente che deve swipare le parole via 
-//	   - Fare documentazione delle procedure per migliorare manutenibilità
-// 	   - Se necessario, vedere se far capire all'utente il passaggio da una fase all'altra / utilizzare frasi diverse per le varie fasi
-
 /*
 FUNZIONI CUSTOM
 */ 
@@ -3003,7 +2884,6 @@ const SCENE_IMAGES = {
 }
 
 const SceneUtility = {
-	clickedItems: false,
 	hoverTimer: null,
 	currentHoveredId: null,
 
@@ -3018,7 +2898,6 @@ const SceneUtility = {
 		}
 		
 		const sky = document.getElementById("sky");
-		// const overlay = document.getElementById("sceneFadeOverlay");	Adesso gestisco il fade a parte
 
 		//Pulsco il cielo ogni volta da eventuali child (pioggia)
 		sky.innerHTML = '';
@@ -3036,8 +2915,6 @@ const SceneUtility = {
 
 			sky.appendChild(rain);
 		}
-			
-		// overlay.classList.add("covering");	Come sopra
 
 		await preloadImage(imageSrc);
 
@@ -3056,21 +2933,6 @@ const SceneUtility = {
 
 	async loadDetails(typeOfItems) {
 		TorchGlow.clear(); // niente aloni rimasti da un caricamento precedente
-		// // Carica o crea il wrapper
-		// let wrapper = document.getElementById('details-wrapper');
-		
-
-		// if (!wrapper) {
-		// 	wrapper = document.createElement('div');
-		// 	wrapper.id = 'details-wrapper';
-		// 	wrapper.className = 'details-wrapper';
-
-		// 	// Aggiungo il wrapper al gioco 
-		// 	document.body.appendChild(wrapper);
-		// }
-		
-		// // Pulisci il contenuto precedente
-		// wrapper.innerHTML = '';
 
 		//Distruggo il wrapper e lo ricreo ogni volta
 		const oldWrapper = document.getElementById('details-wrapper');
@@ -3144,18 +3006,6 @@ const SceneUtility = {
 
 				if(imgData.onClick){
 					img.classList.add('clickable-object', 'highlight');
-					// img.style.pointerEvents = 'auto'; //Override pointerEvents: none; del wrapper
-				
-					// img.addEventListener('click', (e) => {
-					// 	e.stopPropagation();
-					// 	// Si trigghera solamente se il click è fatto su pixel senza trasparenza
-					// 	if (isClickOnVisiblePixel(img, e)) {						
-					// 		img.src = imgData.onClick;
-							
-					// 		img.classList.remove('clickable-object', 'highlight');
-					// 		img.style.pointerEvents = 'none';
-					// 	}					
-					// })
 				}
 
 				if(imgData.lighted)
@@ -3184,7 +3034,6 @@ const SceneUtility = {
 						TorchGlow.add(img);
 					}
 
-					// console.log(img);
 					resolve();
 				};
 				
@@ -3205,32 +3054,8 @@ const SceneUtility = {
 		if (["torcia", "contrattazione", "accettazione"].includes(typeOfItems)) {
 			ObjectCounter.show(images.filter(img => img.dialog).length);
 		}
-
-		//Pre-calcola le mappe alpha per gli oggetti lighted
-	
-
-		// console.log(`Loaded ${images.length} images for ${typeOfItems}`);
 	},
 
-
-	// Il fade lo gestisco a parte
-	// revealPreparedScene() {	
-	// 	const overlay = document.getElementById("sceneFadeOverlay");
-
-	// 	/*
-	// 	Aspetto 2 volte il frame:
-	// 	Stato iniziale: Opacity 1, quindi tutto nero
-	// 	Stato intermedio: rimuovo l'overlay e do il tempo al browser di far partire l'animazione
-	// 	Stato finale: Opacity 0, quindi trasparente
-
-	// 	Tecnica usata spesso per animazioni di questo tipo
-	// 	*/ 
-	// 	requestAnimationFrame(() => {
-	// 		requestAnimationFrame(() => {
-	// 			overlay.classList.remove("covering");
-	// 		})
-	// 	})
-	// },
 
 	async loadScene(typeOfScene){
 		switch(typeOfScene){
@@ -3303,58 +3128,12 @@ const SceneUtility = {
 		TorchGlow.clear();
 	},
 
-	restoreBackgroundFromGlitch() {
-		// 1. Trova il wrapper di Glitch
-		const wrapper = document.getElementById('glitch-shake-wrapper');
-		if (!wrapper) {
-			console.log('Nessun wrapper Glitch trovato');
-			return false;
-		}
-		
-		// 2. Trova il background (ha id="background" o data-ui="background")
-		const background = wrapper.querySelector('#background') || 
-						wrapper.querySelector('[data-ui="background"]');
-		
-		if (!background) {
-			console.log('Nessun background trovato nel wrapper');
-			return false;
-		}
-		
-		// 3. Trova game-screen
-		const gameScreen = document.querySelector('game-screen');
-		if (!gameScreen) {
-			console.log('Nessun game-screen trovato');
-			return false;
-		}
-		
-		// 4. Ripristina il background
-		try {
-			// Rimuovi dal wrapper
-			wrapper.removeChild(background);
-			// Aggiungi a game-screen (come primo figlio o dove vuoi)
-			gameScreen.prepend(background);
-			// Rimuovi il wrapper
-			wrapper.remove();
-			
-			// Rimuovi anche il viewport
-			const viewport = document.getElementById('glitch-shake-viewport');
-			if (viewport) viewport.remove();
-			
-			console.log('✅ Background ripristinato con successo!');
-			return true;
-		} catch (error) {
-			console.error('Errore nel ripristino del background:', error);
-			return false;
-		}
-	},
-
 	addShadow(){
 		let wrapper = document.getElementById('details-wrapper');
 		if(!wrapper) return;
 
 		const imges = SCENE_IMAGES["depressione"];
 		const imgWrapper = wrapper.querySelector('.clickable-object');
-		// console.log(imgWrapper);
 		imgWrapper.classList.remove('hide');
 
 		wrapper.addEventListener('click', (e) => {
@@ -3454,9 +3233,6 @@ const SceneUtility = {
 				e.stopPropagation();
 			}
 		});
-
-		// // Se il cursore esce dal wrapper, pulisci tutto
-		// wrapper.addEventListener('mouseleave', () => this.clearHover());
 	},
 
 	clearHover() {
@@ -3479,23 +3255,6 @@ const SceneUtility = {
 
 		this.lockItemWrapper();
 
-		// //Blocco i touch verso monogatari per evitare di skippare dialoghi involontariamente
-		// NightOverlay.element.style.pointerEvents = 'none';
-
-
-		// // Calcola il centro dell'oggetto
-		// const rect = element.getBoundingClientRect();
-		// const centerX = rect.left + rect.width / 2;
-		// const centerY = rect.top + rect.height / 2;
-
-		// // Sposta la torcia al centro e la blocca
-		// NightOverlay.targetX = centerX;
-		// NightOverlay.targetY = centerY;
-		// NightOverlay.torchX = centerX;
-		// NightOverlay.torchY = centerY;
-		// NightOverlay.updateTorch(centerX, centerY);
-		// NightOverlay.isFrozen = true;
-
 		// Salva l'oggetto cliccato
 		const store = monogatari.storage();
 		store.lastClickedObject = imgData.id;
@@ -3505,10 +3264,6 @@ const SceneUtility = {
 			store.clickedObjects.push(imgData.id);
 			ObjectCounter.increment();
 		}
-
-		// Rimuove highlight e interattività dall'oggetto
-		// element.classList.remove('clickable-object', 'highlight');
-		// element.style.pointerEvents = 'none';
 
 		//Tolgo l'oggetto dalla lista di oggetti puntabili
 		element.dataset.lighted = 'false';
@@ -3570,61 +3325,25 @@ const SceneUtility = {
 		if (wrapper) wrapper.style.pointerEvents = 'none';
 	},
 
-	addBlur(duration = 2000) {
-    const el = document.getElementById('blur-overlay');
-    if (!el) return;
-    el.style.transition = `opacity ${duration}ms ease`;
-    el.classList.add('visible');
-},
-
-	removeBlur(duration = 0) {
-		const el = document.getElementById('blur-overlay');
+	// Filtri a schermo intero: mostra/nasconde l'overlay con una transizione della durata data.
+	_toggleOverlay(id, visible, duration) {
+		const el = document.getElementById(id);
 		if (!el) return;
 		el.style.transition = `opacity ${duration}ms ease`;
-		el.classList.remove('visible');
+		el.classList.toggle('visible', visible);
 	},
 
-	addBW(duration = 0) {
-		const el = document.getElementById('bw-filter-overlay');
-		if (!el) return;
-		el.style.transition = `opacity ${duration}ms ease`;
-		el.classList.add('visible');
-	},
+	addBlur(duration = 2000) { this._toggleOverlay('blur-overlay', true, duration); },
+	removeBlur(duration = 0) { this._toggleOverlay('blur-overlay', false, duration); },
 
-	removeBW(duration = 0) {
-		const el = document.getElementById('bw-filter-overlay');
-		if (!el) return;
-		el.style.transition = `opacity ${duration}ms ease`;
-		el.classList.remove('visible');
-	},
+	addBW(duration = 0) { this._toggleOverlay('bw-filter-overlay', true, duration); },
+	removeBW(duration = 0) { this._toggleOverlay('bw-filter-overlay', false, duration); },
 
-	addSaturation(duration = 0) {
-		const el = document.getElementById('saturation-overlay');
-		if (!el) return;
-		el.style.transition = `opacity ${duration}ms ease`;
-		el.classList.add('visible');
-	},
+	addSaturation(duration = 0) { this._toggleOverlay('saturation-overlay', true, duration); },
+	removeSaturation(duration = 0) { this._toggleOverlay('saturation-overlay', false, duration); },
 
-	removeSaturation(duration = 0) {
-		const el = document.getElementById('saturation-overlay');
-		if (!el) return;
-		el.style.transition = `opacity ${duration}ms ease`;
-		el.classList.remove('visible');
-	},
-
-	addDim(duration = 0){
-		const el = document.getElementById('dim-overlay');
-		if (!el) return;
-		el.style.transition = `opacity ${duration}ms ease`;
-		el.classList.add('visible');
-	},
-
-	removeDim(duration = 0){
-		const el = document.getElementById('dim-overlay');
-		if (!el) return;
-		el.style.transition = `opacity ${duration}ms ease`;
-		el.classList.remove('visible');
-	}
+	addDim(duration = 0) { this._toggleOverlay('dim-overlay', true, duration); },
+	removeDim(duration = 0) { this._toggleOverlay('dim-overlay', false, duration); }
 
 }
 
@@ -3635,12 +3354,6 @@ const SceneFade = {
 
 	init() {
 		this.element = document.getElementById('sceneFadeOverlay');
-	},
-
-	wait(seconds) {
-		return new Promise(resolve => {
-			setTimeout(resolve, seconds * 1000);
-		});
 	},
 
 	async toVisible({ duration = this.defaultDuration, color = this.defaultColor } = {}) {
@@ -3656,7 +3369,7 @@ const SceneFade = {
 		if(PhoneToggle.visible)
 			PhoneToggle.hide();
 
-		await this.wait(duration);
+		await sleep(duration * 1000);
 	},
 
 	async toHidden({ duration = this.defaultDuration } = {}) {
@@ -3668,7 +3381,7 @@ const SceneFade = {
 			this.element.style.opacity = '0';
 		});
 
-		await this.wait(duration);
+		await sleep(duration * 1000);
 	}
 };
 
@@ -3898,10 +3611,7 @@ const PanicBreath = {
 			case "buildup":
 				const t = Math.min(elapsed / 8, 1);	//normalizzato 0 -> 1
 				
-				// const smooth = t*t*t*(t*(6*t - 15) + 10);	//Quintic smoothstep
 				const smooth = 1 / (1+Math.exp(-6 * (t - 0.5)));
-				// this.volume = 0.2 + (1 - Math.pow(2, -2 * t)) *0.8;	//Easing esponenziale volume	
-				// this.rate = 0.8 + t * 2; //rate cresce più velocemente da 1 a 3 
 				
 				this.volume = 0.2 + smooth * 0.8;
 				this.rate = 0.8 + smooth * 2;
@@ -4567,7 +4277,7 @@ const BreathingGame = {
 const BlinkOverlay = {
 	speed: 300,
 	overlay: null,
-	isBlinkning: false,
+	isBlinking: false,
 
 	init(){
 		this.overlay = document.getElementById('blink-overlay');
@@ -4595,8 +4305,6 @@ const BlinkOverlay = {
 		this.getOverlay().style.setProperty('--speed', `${this.speed}ms`);
 	},
 
-	wait(ms){return new Promise(resolve => setTimeout(resolve, ms));},
-
 	async blink(speed = this.speed) {
 		if (this.isBlinking) {
 			return;
@@ -4610,10 +4318,10 @@ const BlinkOverlay = {
 			const overlay = this.getOverlay();
 
 			overlay.classList.add('closed');
-			await this.wait(this.speed);
+			await sleep(this.speed);
 
 			overlay.classList.remove('closed');
-			await this.wait(this.speed * 1.15);
+			await sleep(this.speed * 1.15);
 		} finally {
 			this.isBlinking = false;
 		}
@@ -4622,14 +4330,14 @@ const BlinkOverlay = {
 
 	async doubleBlink(speed = this.speed) {
 		await this.blink(speed);
-		await this.wait(this.speed * 0.35);
+		await sleep(this.speed * 0.35);
 		await this.blink(speed * 0.85);
 	},
 
 	async closeLid(speed = this.speed){
-		if (this.isBlinkning) return;
+		if (this.isBlinking) return;
 
-		this.isBlinkning = true;
+		this.isBlinking = true;
 
 		try{
 			this.setSpeed(speed);
@@ -4638,14 +4346,14 @@ const BlinkOverlay = {
 
 			overlay.classList.add('closed');
 		} finally {
-			this.isBlinkning = false;
+			this.isBlinking = false;
 		}
 	},
 
 	async openLid(speed = this.speed){
-		if (this.isBlinkning) return;
+		if (this.isBlinking) return;
 
-		this.isBlinkning = true;
+		this.isBlinking = true;
 
 		try{
 			this.setSpeed(speed);
@@ -4654,7 +4362,7 @@ const BlinkOverlay = {
 
 			overlay.classList.remove('closed');
 		} finally {
-			this.isBlinkning = false;
+			this.isBlinking = false;
 		}
 	} 
 }
@@ -4917,20 +4625,8 @@ const AudioManager = {
 		const filter = this.getLowPassFilter();
 		const ctx = this.getContext();
 
-		console.log('setLowPass called:', {
-			frequency,
-			rampTime,
-			currentFreq: filter.frequency.value,
-			filterType: filter.type,
-			ctxState: ctx.state,
-			numberOfInputs: filter.numberOfInputs,
-			numberOfOutputs: filter.numberOfOutputs
-    	});
-
 		filter.frequency.setValueAtTime(filter.frequency.value, ctx.currentTime);
 		filter.frequency.linearRampToValueAtTime(frequency, ctx.currentTime + rampTime);
-		// Debug dopo il set
-   		console.log('Frequency set to:', filter.frequency.value);
 	},
 
 	applyGlitch(track, duration, options = {}){
@@ -5006,7 +4702,6 @@ const HeartbeatManager = {
 	maxBpm: 220,
 	volume: 0.85,
 	isPlaying: false,
-	isLoading: false,
 	// Promise condivisa per non caricare due volte gli asset
 	loadPromise: null,
 	// Dati del ramp attivo (transizione graduale tra due BPM)
@@ -5055,16 +4750,13 @@ const HeartbeatManager = {
 	// Carica e decodifica tutti i file audio in parallelo
 	async load() {
 		if (this.loadPromise) return this.loadPromise;
-		this.isLoading = true;
 		this.loadPromise = Promise.all(
 			Object.entries(this.assets).map(async ([id, path]) => {
 				const response = await fetch(path);
 				const data = await response.arrayBuffer();
 				this.buffers[id] = await this.getContext().decodeAudioData(data);
 			})
-		).finally(() => {
-			this.isLoading = false;
-		});
+		);
 		return this.loadPromise;
 	},
 
@@ -5171,19 +4863,6 @@ const HeartbeatManager = {
 		source.start(time ?? this.context.currentTime);
 	},
 
-	// Riproduce un singolo battito (lub-dub) una volta sola
-	async pulse(options = {}) {
-		const context = this.getContext();
-		await this.load();
-
-		if (context.state === 'suspended') {
-			await context.resume();
-		}
-
-		this.setVolume(options.volume ?? this.volume);
-		this.scheduleBeat(context.currentTime + (options.delay ?? 0));
-	},
-
 	// Imposta un nuovo BPM, con transizione graduale opzionale
 	setBpm(bpm, options = {}) {
 		const nextBpm = this.clampBpm(bpm);
@@ -5250,36 +4929,6 @@ const HeartbeatManager = {
 		}
 	}
 };
-
-// const BWFilter = {
-//     overlay: null,
-    
-//     // Inizializza - chiamare in init o nel costruttore principale
-//     init() {
-//         this.overlay = document.getElementById('bw-filter-overlay');
-//     },
-    
-//     // Attiva il filtro bianco e nero
-//     enable(duration = 800) {
-//         if (!this.overlay) return;
-//         this.overlay.style.transition = `background-color ${duration}ms ease`;
-//         this.overlay.classList.add('active');
-//     },
-    
-//     // Disattiva il filtro
-//     disable(duration = 800) {
-//         if (!this.overlay) return;
-//         this.overlay.style.transition = `background-color ${duration}ms ease`;
-//         this.overlay.classList.remove('active');
-//     },
-    
-//     // Attiva/disattiva immediatamente senza transizione
-//     set(active) {
-//         if (!this.overlay) return;
-//         this.overlay.style.transition = 'none';
-//         active ? this.overlay.classList.add('active') : this.overlay.classList.remove('active');
-//     }
-// };
 
 function startAcceleratingClock(options = {}) {
 	return new Promise((resolve) => {
@@ -5550,7 +5199,6 @@ const EndCredits = {
 		overlay.appendChild(roll);
 		document.body.appendChild(overlay);
 
-		const wait = (ms) => new Promise(r => setTimeout(r, ms));
 		// Doppio rAF: committa lo stato iniziale prima di animare (stessa
 		// tecnica del reveal di scena).
 		const nextFrames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -5558,7 +5206,7 @@ const EndCredits = {
 		// Fade a nero
 		await nextFrames();
 		overlay.classList.add('visible');
-		await wait(1500);
+		await sleep(1500);
 
 		// Scorrimento: il blocco parte sotto lo schermo ed esce dall'alto, velocità fissa ~28ms/px, regolare qui se il rullo è lento/veloce
 		const distance = window.innerHeight + roll.offsetHeight;
@@ -5575,7 +5223,7 @@ const EndCredits = {
 		skipButton.classList.add('visible');
 		
 		// Il rullo finisce da solo oppure al tocco su "salta": in entrambi i casi si passa a "Fine"
-		await Promise.race([wait(duration + 500), waitForTap(skipButton)]);
+		await Promise.race([sleep(duration + 500), waitForTap(skipButton)]);
 		roll.remove();
 		skipButton.remove();
 
@@ -5586,7 +5234,7 @@ const EndCredits = {
 		overlay.appendChild(fine);
 		await nextFrames();
 		fine.classList.add('visible');
-		await wait(10000);
+		await sleep(10000);
 
 		const hint = document.createElement('div');
 		hint.className = 'credits-hint';
@@ -5611,7 +5259,6 @@ const StartIntro = {
 		return new Promise((resolve) => {
 			const menu = document.querySelector('main-menu');
 			const title = document.querySelector('.main-title');
-			// const fade = document.getElementById('sceneFadeOverlay');
 
 			if (!menu || !title) { resolve(); return; }
 
@@ -5762,10 +5409,6 @@ const Tutorial = {
 
 		this.element.classList.add('visible', 'tutorial-object-enter');
 		this.element.style.pointerEvents = 'none'; // non cliccabile durante l'ingresso
-
-		// this.element.addEventListener('animationend', () => {
-		// 	this.img.classList.add('highlight');
-		// }, { once: true });
 	},
 
 	// Risolve quando l'utente clicca l'oggetto
@@ -5800,7 +5443,6 @@ const Tutorial = {
 		if (!targetEl) return Promise.resolve();
 
 		const rect = targetEl.getBoundingClientRect();
-		console.log(this);
 		const ring = this.ensure();
 		const pad = 8; // margine attorno all'elemento
 
@@ -5822,11 +5464,6 @@ const Tutorial = {
 				resolve();
 			}, duration);
 		});
-	},
-
-	// Nasconde subito, utile se serve chiudere prima del timeout naturale
-	hideRing(){
-		this.ring?.classList.remove('visible');
 	}
 };
 
@@ -5857,12 +5494,18 @@ const DebugMenu = {
 	// Elenco dei label Monogatari disponibili nel menu.
 	// Ogni stringa e' sia il testo mostrato nel bottone sia il label usato da jump.
 	labels: [
+		'Tutorial',
+		'ContinuaTutorial',
 		'Start',
-		'Rimani',
 		'Intermezzo_Respira',
 		'Torcia',
 		'Continua_Torcia',
 		'Negazione_Cellulare',
+		'Negazione_Rispondi',
+		'Negazione_Ignora_2',
+		'Negazione_Ignora',
+		'Secondo_Messaggio',
+		'Rimani',
 		'Rimani_A_Casa',
 		'Esci_Casa',
 		'Rabbia',
@@ -5875,6 +5518,7 @@ const DebugMenu = {
 		'Lascia_Andare',
 		'Non_Pronto',
 		'Accettazione',
+		'Accettazione_Disegno',
 		'Scena_Accettazione',
 		'TitoliDiCoda',
 		//'Test_telefono'
@@ -6030,6 +5674,9 @@ const DebugMenu = {
 	},
 
 	close() {
+		// jumpTo puo' essere chiamato anche senza che il menu sia mai stato creato.
+		if (!this.root) return;
+
 		// Rimuove la classe "open" e aggiorna gli attributi aria.
 		this.root.classList.remove('open');
 		this.panel.setAttribute('aria-hidden', 'true');
@@ -6060,6 +5707,14 @@ const DebugMenu = {
 				monogatari.global('block', false);
 			}
 
+			// Il minigioco e i dialoghi della rabbia lavorano sulla stanza preparata
+			// dal label Rabbia (cielo, oggetti, sfondo): saltandoci direttamente va
+			// ricostruita qui, altrimenti Glitch.animateObjectSwap non trova gli oggetti.
+			if (label === 'GlitchRabbia' || label.startsWith('DialogoGlitch_')) {
+				await SceneUtility.loadScene('rabbia');
+				await monogatari.run('show scene room_rage', false);
+			}
+
 			// Salto effettivo: usa l'azione Monogatari "jump NomeLabel".
 			const result = monogatari.run(`jump ${label}`);
 
@@ -6071,7 +5726,7 @@ const DebugMenu = {
 			this.setStatus(`Label corrente: ${label}`);
 
 			// Chiude il pannello per lasciare vedere la scena appena caricata.
-			this.close(false);
+			this.close();
 		} catch (error) {
 			this.handleJumpError(error, label);
 		}
@@ -6146,6 +5801,8 @@ const DebugMenu = {
 		// TypeCentered prosegue al primo click e si chiude al secondo.
 		// Il remove finale e' una cintura di sicurezza se l'azione era gia' risolta.
 		document.querySelectorAll('.type-centered-container').forEach((container) => {
+			// Segnala a TypeCentered di non avanzare: il jump arriva subito dopo.
+			container.dataset.aborted = 'true';
 			container.click();
 			container.click();
 			container.remove();
@@ -6166,13 +5823,6 @@ const DebugMenu = {
 		}
 		TorchHint.dismiss();
 		TorchGlow.clear();
-
-		// Pulisce oggetti cliccabili e pannelli dettaglio della scena torcia.
-		// hideClickableObjects();
-		document.getElementById('detail-blur')?.remove();
-		document.getElementById('detail-zoom')?.remove();
-		document.getElementById('detail-back')?.remove();
-		document.getElementById('detail-desc')?.remove();
 	},
 
 	resetVisualOverlays() {
@@ -6272,7 +5922,6 @@ const DebugMenu = {
 			(typeof targetLabel === 'string' && targetLabel.startsWith('DialogoTorcia'));
 		if (isTorciaRelated) {
 			store.clickedObjects = [];
-			store.allClicked = false;
 		}
 	},
 
@@ -6369,11 +6018,8 @@ function pauseTextBox(time = 3000){
 }
 		
 $_ready (() => {
-	// 2. Inside the $_ready function:
-
 	monogatari.on('start', () => {
 		const screens = document.querySelectorAll('game-screen[data-component="game-screen"]');
-		console.log("Sono entrato, screens:" + screens);
 		if(screens)
 			screens.forEach(s => {s.style.backgroundColor = "transparent";});
 
@@ -6403,7 +6049,6 @@ $_ready (() => {
 		}, true); // capture: true per anticipare il listener nativo di Monogatari
 
 		
-		// 3. Inside the init function:
 		// Il telefono viene inizializzato subito, ma resta nascosto finche una scena lo apre.
 		PhoneUI.init();
 

@@ -13,57 +13,11 @@ function roomLayers() {
 	].filter(Boolean);
 }
 
-// Define the messages used in the game.
-monogatari.action ('message').messages ({
-	'Help': {
-		title: 'Help',
-		subtitle: 'Some useful Links',
-		body: `
-			<p><a href='https://developers.monogatari.io/documentation/'>Documentation</a> - Everything you need to know.</p>
-			<p><a href='https://monogatari.io/demo/'>Demo</a> - A simple Demo.</p>
-		`
-	}
-});
-
-// Define the notifications used in the game
-monogatari.action ('notification').notifications ({
-	'Welcome': {
-		title: 'Welcome',
-		body: 'This is the Monogatari VN Engine',
-		icon: ''
-	}
-});
-
-// Define the Particles JS Configurations used in the game
-monogatari.action ('particles').particles ({
-
-});
-
-// Define the canvas objects used in the game
-monogatari.action ('canvas').objects ({
-
-});
-
-// Credits of the people involved in the creation of this awesome game
-monogatari.configuration ('credits', {
-
-});
-
-
-// Define the images that will be available on your game's image gallery
-monogatari.assets ('gallery', {
-});
-
 // Define the music used in the game.
 monogatari.assets ('music', {
 	rage_scene: 'mus_rabbia_loop.mp3',
 	depression_scene: 'mus_depressione_loop.mp3',
 	rain: 'rain.mp3'
-
-});
-
-// Define the voice files used in the game.
-monogatari.assets ('voices', {
 
 });
 
@@ -75,16 +29,6 @@ monogatari.assets ('sounds', {
 	phone_vibration: 'phone_vibration.mp3',
 	phone_notification: 'phone_notification.mp3',
 	birds: 'sfx_respiro_uccellini.mp3'
-});
-
-// Define the videos used in the game.
-monogatari.assets ('videos', {
-
-});
-
-// Define the images used in the game.
-monogatari.assets ('images', {
-
 });
 
 // Define the backgrounds for each scene.
@@ -124,7 +68,6 @@ monogatari.script ({
 	// The game starts here.
 
 	'Tutorial': [
-		// 'jump Start', //Per saltare, finchè non è finito
 		async () => {
 			await ContentWarning.play();
 			SceneFade.toHidden();
@@ -139,10 +82,8 @@ monogatari.script ({
 		'guide Stai per giocare ad una visual novel nella quale saranno presenti elementi con cui potrai interagire.',
 
 		async () => {
-			// hideTextBox(false);
 			JizoGuide.peek(); // l'orsacchiotto occupa il centro: Jizo sbircia dal bordo
 			Tutorial.showObject();
-			// showTextBox();
 		},
 
 		"guide Quando vedrai qualcosa lampeggiare in questo modo, potrai toccarlo per scoprire cosa nasconde. Prova a interagire con l’oggetto per continuare.",
@@ -271,12 +212,8 @@ monogatari.script ({
 
 	'Start': [
 
-		// async () => await Tutorial.play(),
 		() => GameTimer.start(),
 		'show scene #000000 with fadeIn duration 5s',
-
-		//Test negazione
-		//'jump Rabbia',
 
 		{
 			TypeCentered: `Cosa tiene in vita una luce che non riesce più a farsi strada perché soffocata da una nebbia densa e nera come pece?`
@@ -370,7 +307,6 @@ monogatari.script ({
 			showTextBox();
 		},
 		
-		//'play breathe volume 30 loop',
 		'dad No! NO!',
 		'dad …aspetta, respira. Era solo… solo un incubo, ma la stessa scena si ripete ormai tutte le notti.',
 		'dad Succede spesso quando dormo male… può capitare.',
@@ -476,8 +412,6 @@ monogatari.script ({
 	],
 
 	'Continua_Torcia': [
-		// 'centered <div style="color: #e5e5e5; font-style: italic; z-index: 14 !important;">Si è fatta una certa ora...provo a riaddormentarmi.</div>',
-		// () => NightOverlay.hideTorch(),
 		'wait 2000',
 		() => {
 			NightOverlay.isFrozen = true;
@@ -498,28 +432,6 @@ monogatari.script ({
 			await AudioManager.fadeOut('fan', 4);
 		},
 		'jump Negazione_Cellulare'
-
-		// () => {
-		// 	SceneUtility.enableBackground();
-		// 	NightOverlay.hide();
-		// 	SceneUtility.emptyScene();
-		// 	hideTextBox();
-		// },
-		
-
-
-
-		// 'show scene #000000 with fadeIn',
-
-		// () => {
-		// 	NightOverlay.hide();
-		// 	hideClickableObjects();
-		// },
-		// 'wait 2000',
-		// 'show scene room with fadeIn',
-		// {
-		// 	TypeCentered : `Buongiornissimo, caffè?`
-		// }
 	],
 
 //NEGAZIONE
@@ -554,7 +466,6 @@ monogatari.script ({
 			// Imposta il mittente senza aprire il telefono: vedrai solo badge e lockscreen.
 			PhoneUI.setContactName('Giulia');
 			PhoneUI.addIncoming('So che è difficile, ma sono qui. Andiamo a prendere un caffè?');
-			// PhoneUI.vibrate();
 		},                
 
         // PhoneChoice mostra questi pulsanti direttamente nella chat del telefono.
@@ -572,8 +483,6 @@ monogatari.script ({
 
     'Negazione_Rispondi': [
         async () => {
-			// await HeartbeatManager.start({bpm: 75, fadeIn: 1.5, volume: 1})
-			// HeartbeatManager.accelerate(120, 6);
 			WatchOnlyIcon.show();
 			await HeartbeatManager.start({ bpm: 75, fadeIn: 0.2, volume: 1 });
 			return new Promise(resolve => {
@@ -586,16 +495,6 @@ monogatari.script ({
 			await sleep(300);
 			PhoneUI.addOutgoing('Sì, dai, perché no… fammi finire un paio di cose e ti aggiorno');
 			PhoneTyping.hide();
-			// SceneUtility.addBlur(2000);
-			// await sleep(1500);
-			// SceneUtility.addSaturation(2500);
-			// HeartbeatManager.accelerate(180, 4);
-			// await sleep(6000);
-			// SceneUtility.removeBlur(2000);
-			// SceneUtility.removeSaturation(0);
-			// HeartbeatManager.decelerate(75, 3);
-			// PhoneGlitch.trigger(2000);
-			// await sleep(2000);
 			const bubbles = document.querySelectorAll('.phone-bubble.outgoing');
 			const lastBubble = bubbles[bubbles.length - 1];
 
@@ -609,14 +508,6 @@ monogatari.script ({
 				);
 			}
 
-			// const shell = document.getElementById('phone-shell');
-			// console.log(getComputedStyle(shell).transform);
-			// PhoneGlitch.zoomShell(2000, 1.18);
-			// setTimeout(() => console.log(getComputedStyle(shell).transform), 500);
-
-			// SceneUtility.removeBlur(1000);
-			// await sleep(3000);
-			// HeartbeatManager.stop();
 			WatchOnlyIcon.hide();
 			await sleep(2000);
 		},
@@ -673,7 +564,6 @@ monogatari.script ({
                 // Nuovo messaggio: telefono chiuso, solo notifica/badge.
                 PhoneUI.setContactName('Giulia');
                 PhoneUI.addIncoming('Sai che può solo farti bene, hai bisogno di aria. Ti aspetto.');
-                // PhoneUI.vibrate();
 		},
 
         {'PhoneChoice': {
@@ -769,13 +659,11 @@ monogatari.script ({
 		},
 		'show scene #000000',
 		() => SceneFade.toHidden(),
-		// 'show scene #000000 with fadeIn',
 		'wait 5000',
 		'play sound phone_vibration',
 		'play sound phone_notification',
 		
 		async () => {
-			// PhoneUI.reset();
 			// Messaggio in arrivo: aggiorna il badge, ma lascia il telefono chiuso.
 			PhoneUI.setContactName('Giulia');
 			await PhoneUI.playMessages({
@@ -784,7 +672,6 @@ monogatari.script ({
 			})
 			PhoneUI.hide();
 			WatchOnlyIcon.hide();
-			// PhoneUI.vibrate();
 		},
 
 		{'Choice':{
@@ -854,7 +741,6 @@ monogatari.script ({
 			AudioManager.setLowPass(1200, 3);
 			await sleep(3000);
 			AudioManager.setLowPass(5000, 5);
-			// AudioManager.setLowPass(20000, 5);
 			
 			await sleep(5000);
 		},
@@ -915,7 +801,6 @@ monogatari.script ({
 			await SceneFade.toHidden();
 			
 		},
-		// 'play music rage_scene with loop volume 75',
 
 		'wait 2000',
 
@@ -1026,30 +911,11 @@ monogatari.script ({
 	],
 
 	'ContinuaGlitch': [
-		// 'centered <div style="color: #e5e5e5; font-style: italic; z-index: 14 !important;">...</div>',
-		// async () => {
-		// 	document.getElementById('clock-display').style.display = 'block';
-		// 	window.stopClock = startAcceleratingClock('clock-display');
-		// },
-
-		// 'wait 10000',
-
-		// async () => {
-		// 	if(window.stopClock) window.stopClock();
-		// 	document.getElementById('clock-display').style.display = 'none';
-		// },
-
 		'wait 3000',
-		// () => {
-		// 	PhoneUI.reset();
-		// 	// Apre direttamente la chat: non ci sono notifiche da leggere e lo
-		// 	// sblocco della lockscreen e' disabilitato senza messaggi non letti.
-		// 	PhoneUI.show('Giulia', { mode: 'chat' });
-		// },
 
 		async () => {
 			PhoneUI.show('Messaggi');
-			PhoneUI.addNotification({ title: 'Messaggi', body: 'Nessun nuovo messaggio' }, false, true);
+			PhoneUI.addNotification({ title: 'Messaggi', body: 'Nessun nuovo messaggio' }, true);
 
 			PhoneUI.setTime("15:22");
 
@@ -1109,7 +975,6 @@ monogatari.script ({
 		
 		async () => {
 			await SceneFade.toHidden();		
-			// await SceneUtility.endClickedItems();
 		},
 
 		'jump loop_contrattazione'
@@ -1192,51 +1057,6 @@ monogatari.script ({
 			// Non e' una notifica passiva: vogliamo mostrare la conversazione sul momento.
 			PhoneUI.show('Giulia', { mode: 'chat' });
 			
-			//Old -- Cambiato approccio radicalmente
-			// PhoneUI.addIncoming("Ehi, come va oggi?");
-
-			// // await PhoneUI.waitUntilAllNotificationsRead(20000),
-			// // await sleep(3000);
-
-			// // notify:false evita badge/lockscreen per una risposta gia visibile in chat.
-			// PhoneUI.addOutgoing("Va...alti e bassi, ma un giorno alla volta, giusto?", {
-			// 	notify: false
-			// });
-			// await sleep(2000);
-			// PhoneUI.addIncoming("Un giorno alla volta.", {notify: false})
-			// await sleep(4000);
-			// PhoneUI.addIncoming("Usciamo a fare una passeggiata? Ti vengo a prendere.", {notify: false});
-			// await sleep(5000);
-			// PhoneUI.addOutgoing("D'accordo. Ti aspetto, grazie.");
-			// await sleep(4000);
-
-			//New
-			// await PhoneUI.playMessages([
-			// 	{
-			// 		type: 'incoming',
-			// 		text: "Ehi, come va oggi?"
-			// 	},
-			// 	{
-			// 		type: 'outgoing',
-			// 		text: "Va...alti e bassi, ma un giorno alla volta, giusto?",
-			// 		options: { notify: false }
-			// 	},
-			// 	{
-			// 		type: 'incoming',
-			// 		text: "Un giorno alla volta.",
-			// 		options: { notify: false }
-			// 	},
-			// 	{
-			// 		type: 'incoming',
-			// 		text: "Usciamo a fare una passeggiata? Ti vengo a prendere.",
-			// 		options: { notify: false }
-			// 	},
-			// 	{
-			// 		type: 'outgoing',
-			// 		text: "D'accordo. Ti aspetto, grazie."
-			// 	}
-			// ]);
-
 			PhoneUI.addIncoming("Ehi, come va oggi?", {notify: false});
 			await sleep (2000);
 
@@ -1285,11 +1105,7 @@ monogatari.script ({
 				fade: 6
 			});
 		},
-		// 'play music rain with loop volume 30',
-		// 'play music depression_scene with loop volume 50',
 		'show scene room_night',
-		// 'play music rain with loop volume 30',
-		// 'play music depression_scene with loop volume 50',
 		'wait 1500',
 		async () => await SceneFade.toHidden({duration: 3.5}),
 
@@ -1298,18 +1114,6 @@ monogatari.script ({
 		'play sound phone_notification',
 		async () => {
 			PhoneUI.reset();
-
-
-			// await PhoneUI.playMessages([
-			// 	{
-			// 		type: 'incoming',
-			// 		text: 'Oggi è più difficile degli altri giorni, non devi essere sempre forte. '
-			// 	},
-			// 	{
-			// 		type: 'incoming',
-			// 		text: 'Va bene anche così.'
-			// 	}
-			// ]),
 
 			PhoneUI.addIncoming("Oggi è più difficile degli altri giorni, non devi essere sempre forte.");
 			await PhoneUI.waitUntilAllNotificationsRead();
@@ -1365,12 +1169,6 @@ monogatari.script ({
 
 		async () =>{
 			await SceneFade.toVisible({duration: 1});
-			
-			// //Qui uso solo 'play' perchè voglio che il loop della musica riparta da dove si è interrotto con l'orsacchiotto
-			// await AudioManager.play('rain', {volume: 0.05});
-			
-			// AudioManager.setVolume('depression', 0.5);
-			// await AudioManager.play('depression');
 
 			AudioManager.setLowPass(20000, 3);
 			//Ritorno alle dimensioni normali in maniera trasparente mentre lo schermo è nero
@@ -1385,7 +1183,6 @@ monogatari.script ({
 			SceneUtility.addShadow();
 		},
 		'show scene room_night',
-		// 'play music rain with loop volume 30',
 
 		async () => {
 			WatchOnlyIcon.hide();
@@ -1399,9 +1196,6 @@ monogatari.script ({
 		'dad Non eri in giro per casa, non facevi colazione con i biscotti che tanto ti piacciono.',
 		'dad Non eri neanche a scuola.',
 		'dad Ho passato settimane a raccontarmi che eri solo nell’altra stanza, che bastava non guardare per farti rimanere qui con me.',
-		// () => hideTextBox(),
-		// 'wait 3000',
-		// () => showTextBox(),
 		async () => await pauseTextBox(),
 		'dad …ma tu non ci sei più.',
 		'dad Non come dovresti.',
@@ -1421,7 +1215,6 @@ monogatari.script ({
 				showTextBox();
 		}, 
 
-		// () => pauseTextBox(),
 		'shadow Papà, ho avuto paura, faceva così freddo.',
 
 		'dad Lo so… ricordo tutto adesso. Lo ricordo fin troppo chiaramente.',
@@ -1515,7 +1308,6 @@ monogatari.script ({
 			})
 		},
 
-		// 'play music rage_scene with loop volume 75',
 
 		'jump GlitchRabbia'
 	],
@@ -2020,7 +1812,6 @@ monogatari.script ({
 			// La chat resta visibile e i messaggi gia aggiunti non vengono rimossi.
 			PhoneUI.clearNotifications();
 
-			// PhoneUI.vibrate(600);
 		},
 
 		{'PhoneChoice': {
@@ -2064,23 +1855,4 @@ monogatari.script ({
 			}
 		}},
 	]
-
-		/*
-		'Yes': [
-			'y Thats awesome!',
-		'y Then you are ready to go ahead and create an amazing Game!',
-		'y I can’t wait to see what story you’ll tell!',
-		'end'
-	],
-
-	'No': [
-
-		'y You can do it now.',
-
-		'show message Help',
-
-		'y Go ahead and create an amazing Game!',
-		'y I can’t wait to see what story you’ll tell!',
-		'end'
-	]*/
 });

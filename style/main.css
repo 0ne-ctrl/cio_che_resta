@@ -1057,27 +1057,9 @@ body.show-textbox .phone-toggle {
     transform-origin: center center;
 }
 
-/* .phone-shell.vibrating {
-    animation: phone-vibrate 0.22s linear infinite;
-} */
-
 .phone-shell.glitch-zoom {
     transition: transform 2s cubic-bezier(0.19, 1, 0.22, 1);
     transform: scale(1.18);
-}
-
-.phone-glitch {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 20;
-    overflow: visible;
-    opacity: 0;
-    transition: opacity 0.05s ease;
-}
-
-.phone-glitch.active {
-    opacity: 1;
 }
 
 .phone-speaker {
@@ -1448,14 +1430,6 @@ body.show-textbox .phone-toggle {
     transform: none;
 }
 
-@keyframes phone-vibrate {
-    0%   { transform: translate(-1px, -4vh) rotate(-0.4deg); }
-    25%  { transform: translate(1px, calc(-4vh + 1px)) rotate(0.4deg); }
-    50%  { transform: translate(-1px, calc(-4vh - 1px)) rotate(-0.4deg); }
-    75%  { transform: translate(1px, -4vh) rotate(0.4deg); }
-    100% { transform: translate(0, -4vh) rotate(0); }
-}
-
 @keyframes bubble-in {
     from {
         opacity: 0;
@@ -1662,22 +1636,6 @@ body.show-textbox .phone-toggle {
     100% { transform: scale(0); opacity: 0; }
 }
 
-/* Stile dell'orologio del telefono */
-.clock-display{
-	display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 48px;
-    font-family: monospace;
-    color: white;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 20px;
-    border-radius: 10px;
-    z-index: 1000;
-}
-
 /* Effetto scramble del plateau: leggero flicker/blur, nessun impatto sulle performance. */
 .clock-glitch {
 	filter: blur(1px);
@@ -1716,25 +1674,6 @@ body.show-textbox .phone-toggle {
 }
 
 .sky-night.active { opacity: 1; }
-
-/* Overlay glitch sopra tutto il telefono */
-.phone-glitch {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    opacity: 0;
-    z-index: 10;
-    border-radius: 38px;  /* stesso border-radius della shell */
-    overflow: hidden;
-    transition: opacity 0.1s ease;
-}
-
-.phone-glitch.active {
-    opacity: 1;
-}
 
 /* Overlay per tutta la scena */
 .night-overlay{
@@ -1890,41 +1829,6 @@ body.show-textbox .phone-toggle {
 }
 
 
-/* .detail-zoom {
-    position: fixed;
-    top: 30%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-width: 50vw;
-    max-height: 50vh;
-    z-index: 11;
-}
-
-.detail-desc{
-    position: fixed;
-    top: 65%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 70vw;
-    color: #fff;
-    font-size: 1.2rem;
-    font-style: italic;
-    text-align: center;
-    z-index: 12;
-}
-
-.detail-back {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 12px 20px;
-    background: #ffffffaa;
-    border-radius: 8px;
-    cursor: pointer;
-    z-index: 13;
-    font-weight: bold;
-} */
 
 .clickable-object {
     transition: filter 0.2s ease,  transform 0.2s ease;
