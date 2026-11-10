@@ -145,7 +145,7 @@ monogatari.script ({
 			// showTextBox();
 		},
 
-		"guide Quando vedrai qualcosa lampeggiare in questo modo, potrai toccarlo per scoprire cosa nasconde. Prova a ad interagire con l'oggetto per continuare.",
+		"guide Quando vedrai qualcosa lampeggiare in questo modo, potrai toccarlo per scoprire cosa nasconde. Prova a interagire con l’oggetto per continuare.",
 
 		async () => {
 			await Tutorial.objectClicked();
@@ -183,7 +183,7 @@ monogatari.script ({
 
 	'TutorialChoice_1':[
 		async () => {
-			PhoneUI.addOutgoing("Oggi mi sento un po' meglio, grazie...");
+			PhoneUI.addOutgoing("Oggi mi sento un po’ meglio, grazie…");
 			await sleep(1000);
 			PhoneUI.addIncoming("Mi fa piacere! Un giorno alla volta.", {notify: false});
 		},
@@ -200,7 +200,7 @@ monogatari.script ({
 
 	'TutorialChoice_2':[
 		async () => {
-			PhoneUI.addOutgoing("Ho passato momenti migliori...");
+			PhoneUI.addOutgoing("Ho passato momenti migliori…");
 			await sleep(1000);
 			PhoneUI.addIncoming("Per qualsiasi cosa, chiamami. Io sono qui.", {notify: false});
 		},
@@ -279,7 +279,7 @@ monogatari.script ({
 		//'jump Rabbia',
 
 		{
-			TypeCentered: `Cosa tiene in vita una luce che non riesce più a farsi strada perchè soffocata da una nebbia densa e nera come pece?`
+			TypeCentered: `Cosa tiene in vita una luce che non riesce più a farsi strada perché soffocata da una nebbia densa e nera come pece?`
 		},
 
 		{
@@ -305,7 +305,7 @@ monogatari.script ({
 		() => PanicBreath.start(),
 
 		{
-			TypeCentered: `Allora, dimmi, qual  è la soluzione?`
+			TypeCentered: `Allora, dimmi, qual è la soluzione?`
 		},
 
 		{
@@ -372,8 +372,8 @@ monogatari.script ({
 		
 		//'play breathe volume 30 loop',
 		'dad No! NO!',
-		'dad ...aspetta, respira. Era solo...solo un incubo, ma la stessa scena si ripete ormai tutte le notti.',
-		'dad Succede spesso quando dormo male...può capitare.',
+		'dad …aspetta, respira. Era solo… solo un incubo, ma la stessa scena si ripete ormai tutte le notti.',
+		'dad Succede spesso quando dormo male… può capitare.',
 		
 		() => hideTextBox(false),
 		
@@ -381,12 +381,12 @@ monogatari.script ({
 
 		() => showTextBox(),
 
-		'dad Questa stanza è troppo buia...ma dove ho messo il telefono?',
+		'dad Questa stanza è troppo buia… ma dove ho messo il telefono?',
 		() => hideTextBox(false),
 		'wait 3000',
 		() => showTextBox(),
 
-		'dad ...eccolo!',
+		'dad …eccolo!',
 
 		async () => {
 			// Toggle nascosto: il telefono si apre da solo e non deve poter essere chiuso
@@ -405,7 +405,7 @@ monogatari.script ({
 		'dad <div style="color: #000000;">.</div>',
     	'dad Dovrei annaffiarla, ha bisogno di luce, sta perdendo tutte le foglie.',
 		'dad Oggi lo faccio, devo solo organizzarmi meglio, non voglio che si secchi del tutto.',
-		'dad Si...si...lo farò dopo, dopo che mi sarò alzato.',
+		'dad Sì… sì… lo farò dopo, dopo che mi sarò alzato.',
     	() => {
 			hideTextBox();
 			SceneUtility.unlockTorch();
@@ -416,12 +416,12 @@ monogatari.script ({
 	'DialogoTorcia_Cornice': [
 		() => showTextBox(),
 		'dad <div style="color: #000000;">.</div>',
-    	'dad Quanta polvere...non si vede neanche più la fotografia.',
+    	'dad Quanta polvere… non si vede neanche più la fotografia.',
 		'dad Sei così felice lì, quel giorno al parco ci siamo divertiti molto, abbiamo preso un gelato, passeggiato e cantato le tue canzoni preferite.',
 		'dad Dovremmo rifarlo!',
-		'dad Anche perché...',
-		'dad ...si, potremmo...',
-		'dad ...dovremmo proprio rifarlo.',
+		'dad Anche perché…',
+		'dad …sì, potremmo…',
+		'dad …dovremmo proprio rifarlo.',
 		() => {
 			hideTextBox();
 			SceneUtility.unlockTorch();
@@ -435,7 +435,7 @@ monogatari.script ({
     	'dad Mi sento così stanco, non ho voglia di uscire.',
 		'dad Non so neanche che ore sono.',
 		'dad Potrei dormire ancora un po’.',
-		'dad ...',
+		'dad …',
 		'dad Dovrei far sistemare la maniglia, prima o poi si romperà del tutto.',
 		() => {
 			hideTextBox();
@@ -447,9 +447,9 @@ monogatari.script ({
 	'DialogoTorcia_Mobile': [
 		() => showTextBox(),
 		'dad <div style="color: #000000;">.</div>',
-    	'dad Ti ho comprato una nuova maglietta, sono sicuro che ti piacerà',
+    	'dad Ti ho comprato una nuova maglietta, sono sicuro che ti piacerà.',
 		'dad È verde, il tuo colore preferito.',
-		'dad ...',
+		'dad …',
 		'dad Chissà che faccia farai quando la vedrai!',
 		() => {
 			hideTextBox();
@@ -486,7 +486,7 @@ monogatari.script ({
 			showTextBox();
 		},
 
-		'dad È tardi...meglio dormire.',
+		'dad È tardi… meglio dormire.',
 
 		async () => {
 			NightOverlay.hideTorch();
@@ -527,7 +527,7 @@ monogatari.script ({
         async () => {
 			NightOverlay.hide();
 
-			PhoneUI.setTime("9:47");
+			PhoneUI.setTime("09:47");
 
 			await SceneUtility.loadScene("negazione"); 
 			await AudioManager.play('fan', {volume: 0.2, fade: 1, loop: true});
@@ -577,14 +577,14 @@ monogatari.script ({
 			WatchOnlyIcon.show();
 			await HeartbeatManager.start({ bpm: 75, fadeIn: 0.2, volume: 1 });
 			return new Promise(resolve => {
-				PhoneTyping.show('Si dai, perché no...fammi finire un paio di cose e ti aggiorno', 80, resolve);
+				PhoneTyping.show('Sì, dai, perché no… fammi finire un paio di cose e ti aggiorno', 80, resolve);
 			})
 		},
 
 		async() => {
 			PhoneTyping.send();
 			await sleep(300);
-			PhoneUI.addOutgoing('Si dai, perché no...fammi finire un paio di cose e ti aggiorno');
+			PhoneUI.addOutgoing('Sì, dai, perché no… fammi finire un paio di cose e ti aggiorno');
 			PhoneTyping.hide();
 			// SceneUtility.addBlur(2000);
 			// await sleep(1500);
@@ -642,7 +642,7 @@ monogatari.script ({
 
 		() => showTextBox(),
 
-		'dad Oggi.. oggi non ci riesco. Mi dispiace. Non ho neanche le forze per dirtelo.',
+		'dad Oggi… oggi non ci riesco. Mi dispiace. Non ho neanche le forze per dirtelo.',
 
 		() => hideTextBox(),
 
@@ -709,7 +709,7 @@ monogatari.script ({
 		'play sound phone_vibration',
 		'play sound phone_notification',
 
-		() => PhoneUI.addIncoming('Sei ancora sotto la doccia, vero? Ahahahah...'),
+		() => PhoneUI.addIncoming('Sei ancora sotto la doccia, vero? Ahahahah…'),
 		
 		'wait 1600',
 		'play sound phone_vibration',
@@ -734,7 +734,7 @@ monogatari.script ({
 		'play sound phone_notification',
 
 		() => {
-			PhoneUI.addIncoming('Fra poco vado via...');
+			PhoneUI.addIncoming('Fra poco vado via…');
 			WatchOnlyIcon.hide();
 			PhoneToggle.lockToggle(false);
 		},
@@ -995,7 +995,7 @@ monogatari.script ({
 		() => { WordsGame.lock(); showTextBox(); },
 		'dad Inutile! È tutto inutile..ho rovinato tutto, ancora una volta!',
 		'dad Non avremo mai più momenti felici come questo ed è tutta colpa mia!',
-		'dad ...',
+		'dad …',
 		'dad È TUTTA COLPA MIA!!',
 		async () => {
 			hideTextBox(false);
@@ -1008,11 +1008,11 @@ monogatari.script ({
 
 	'DialogoGlitch_Finale': [
 		() => { WordsGame.lock(); showTextBox(); },
-		"dad Dov'è quella maglietta...dove l'ho messa?!",
-		'dad Non so cosa mi sia passato per la testa, volevo farti un regalo...',
-		'dad ...ti sarebbe piaciuto, ma un regalo per chi?! Tu non lo vedrai mai, NON...',
-		'dad ...non potrai mai...',
-		'dad ...NON CI SEI PIÙ!!!',
+		"dad Dov’è quella maglietta… dove l’ho messa?!",
+		'dad Non so cosa mi sia passato per la testa, volevo farti un regalo…',
+		'dad …ti sarebbe piaciuto, ma un regalo per chi?! Tu non lo vedrai mai, NON…',
+		'dad …non potrai mai…',
+		'dad …NON CI SEI PIÙ!!!',
 		async () => {
 			hideTextBox(false);
 			WordsGame.unlock();
@@ -1135,11 +1135,11 @@ monogatari.script ({
 	'DialogoContrattazione_Cornice': [
 		() => showTextBox(),
 		'<div style="color: #000000;">.</div>',
-		'dad Mi dispiace... mi dispiace così tanto.',
+		'dad Mi dispiace… mi dispiace così tanto.',
 		'dad Non volevo, non doveva rompersi.',
-		'dad Non sei tu, non sono arrabbiato con te, non sei neanche qui...',
-		'dad Comprerò della colla e la sistemerò...',
-		'dad Si, sistemerò tutto.',
+		'dad Non sei tu, non sono arrabbiato con te, non sei neanche qui…',
+		'dad Comprerò della colla e la sistemerò…',
+		'dad Sì, sistemerò tutto.',
 
 		() => {
 			hideTextBox();
@@ -1240,18 +1240,18 @@ monogatari.script ({
 			PhoneUI.addIncoming("Ehi, come va oggi?", {notify: false});
 			await sleep (2000);
 
-			await new Promise(resolve => PhoneTyping.show("Va... alti e bassi, ma un giorno alla volta, giusto?", 80, resolve));
+			await new Promise(resolve => PhoneTyping.show("Va… alti e bassi, ma un giorno alla volta, giusto?", 80, resolve));
 			PhoneTyping.send();
-			PhoneUI.addOutgoing("Va... alti e bassi, ma un giorno alla volta, giusto?", {notify: false});
+			PhoneUI.addOutgoing("Va… alti e bassi, ma un giorno alla volta, giusto?", {notify: false});
 			PhoneTyping.hide();
 			await sleep (2000);
 
 			PhoneUI.addIncoming("Un giorno alla volta. Usciamo a fare una passeggiata? Ti vengo a prendere.", {notify: false});
 			await sleep (2000);
 
-			await new Promise(resolve => PhoneTyping.show("D'accordo. Ti aspetto, grazie.", 80, resolve));
+			await new Promise(resolve => PhoneTyping.show("D’accordo. Ti aspetto, grazie.", 80, resolve));
 			PhoneTyping.send();
-			PhoneUI.addOutgoing("D'accordo. Ti aspetto, grazie.", {notify: false});
+			PhoneUI.addOutgoing("D’accordo. Ti aspetto, grazie.", {notify: false});
 			PhoneTyping.hide();
 			await sleep (2000);
 			
@@ -1315,7 +1315,7 @@ monogatari.script ({
 			await PhoneUI.waitUntilAllNotificationsRead();
 			await sleep(2000);
 
-			PhoneUI.addIncoming("Va bene anche così", {notify: false});
+			PhoneUI.addIncoming("Va bene anche così.", {notify: false});
 			await sleep (2000);
 		},
 
@@ -1394,7 +1394,7 @@ monogatari.script ({
 		},
 		
 		() => showTextBox(),
-		'dad ...',
+		'dad …',
 		'dad Non eri nel tuo letto quando mi sono svegliato.',
 		'dad Non eri in giro per casa, non facevi colazione con i biscotti che tanto ti piacciono.',
 		'dad Non eri neanche a scuola.',
@@ -1403,9 +1403,9 @@ monogatari.script ({
 		// 'wait 3000',
 		// () => showTextBox(),
 		async () => await pauseTextBox(),
-		'dad ...ma tu non ci sei più.',
+		'dad …ma tu non ci sei più.',
 		'dad Non come dovresti.',
-		'dad Ieri sono tornato dove tutto è successo ed io...io...',
+		'dad Ieri sono tornato dove tutto è successo ed io… io…',
 		
 		//Inserire pianto quando pronto
 		async () =>{
@@ -1422,63 +1422,63 @@ monogatari.script ({
 		}, 
 
 		// () => pauseTextBox(),
-		'shadow Papà, ho avuto paura, faceva così freddo',
+		'shadow Papà, ho avuto paura, faceva così freddo.',
 
-		'dad Lo so... ricordo tutto adesso. Lo ricordo fin troppo chiaramente.',
+		'dad Lo so… ricordo tutto adesso. Lo ricordo fin troppo chiaramente.',
 		'dad Il rumore dei freni che non hanno risposto, la macchina capovolta e accartocciata.',
 		'dad Ho tentato di allungare il braccio verso il sedile posteriore, ma non ci arrivavo.',
 		'dad Ero incastrato e non sono riuscito a raggiungerti.',
-		'dad Tu eri lì... ed io non sono riuscito ad aiutarti.',
+		'dad Tu eri lì… ed io non sono riuscito ad aiutarti.',
 		async () => await pauseTextBox(),
-		'dad Se solo... se solo avessi preso una decisione diversa, se solo avessi avuto un momento di lucidità in più, ora tu saresti qui.',
+		'dad Se solo… se solo avessi preso una decisione diversa, se solo avessi avuto un momento di lucidità in più, ora tu saresti qui.',
 		
-		'shadow Non è colpa tua, papà, tu volevi salvarmi',
+		'shadow Non è colpa tua, papà, tu volevi salvarmi.',
 		
 		'dad Avrei dovuto esserci io al tuo posto, prendere tutto il dolore che hai provato e riversarlo solo e solamente dentro di me.',
 		'dad Ma il mondo continua ad andare avanti anche senza di te.',
 		'dad Le giornate sono sempre le stesse, ma sono vuote e tristi e sembrano inutili e dolorose.',
 		async () => await pauseTextBox(),
-		'dad Mi sento un guscio vuoto e non voglio... non riesco a svegliarmi ancora con questa consapevolezza.',
-		'dad Non avrai più il futuro che sognavamo...',
+		'dad Mi sento un guscio vuoto e non voglio… non riesco a svegliarmi ancora con questa consapevolezza.',
+		'dad Non avrai più il futuro che sognavamo…',
 
 		'shadow Ma papà, tu sì! Puoi costruirlo tu per tutti e due!',
 		'shadow Esci fuori papà, vai avanti anche tu con il mondo.',
-		'shadow E se il mondo corre...',
-		'shadow ...tu sii un lumacone!',
+		'shadow E se il mondo corre…',
+		'shadow …tu sii un lumacone!',
 		'shadow Non devi correre papà, devi imparare di nuovo a camminare, come hai insegnato a me quando ero piccolo!',
 		
-		'dad ...',
-		'dad Ma fa troppo male... io non ci riesco.',
+		'dad …',
+		'dad Ma fa troppo male… io non ci riesco.',
 
 		'shadow Fai un solo passo, papà.',
-		'shadow Esci fuori da questa stanza, continua a controllare i mostri sotto al mio letto, a raccogliere i fiori nel parco dove andavamo sempre',
+		'shadow Esci fuori da questa stanza, continua a controllare i mostri sotto al mio letto, a raccogliere i fiori nel parco dove andavamo sempre.',
 		'shadow Così posso continuare a guardare il mondo attraverso i tuoi occhi.',
 
-		'dad Attraverso i miei occhi...',
+		'dad Attraverso i miei occhi…',
 
 		() => WatchOnlyIcon.show(),
 		async () => await pauseTextBox(10000),
 		() => WatchOnlyIcon.hide(),
 
 		'shadow Papà, ti ricordi quando giocavamo a nascondino in giardino?',
-		'shadow Tu contavi e io trovavo sempre un posto dove nascondermi',
+		'shadow Tu contavi e io trovavo sempre un posto dove nascondermi.',
 
-		'dad Si...ti nascondevi sempre dietro i cespugli di margherite, erano i tuoi preferiti.',
-		"shadow Si papà, ma tu mi trovavi sempre perchè c'erano quelle cose colorate che si posavano sulla mia testa!",
+		'dad Sì… ti nascondevi sempre dietro i cespugli di margherite, erano i tuoi preferiti.',
+		"shadow Sì, papà, ma tu mi trovavi sempre perché c’erano quelle cose colorate che si posavano sulla mia testa!",
 		'shadow Tu le seguivi e mi trovavi, non è giusto!',
 
-		'dad Le cose colorate...le farfalle!',
+		'dad Le cose colorate… le farfalle!',
 
-		'shadow Ecco, sì! Le farfalle...mi piacevano le farfalle.',
-		'shadow Ecco. Adesso tocca a te contare. Io mi sono nascosto benissimo stavolta papà, ma se esci da questa stanza, se guardi bene intorno...',
-		'shadow ...mi troverai.',
+		'shadow Ecco, sì! Le farfalle… mi piacevano le farfalle.',
+		'shadow Ecco. Adesso tocca a te contare. Io mi sono nascosto benissimo stavolta papà, ma se esci da questa stanza, se guardi bene intorno…',
+		'shadow …mi troverai.',
 		async () => await pauseTextBox(),
 		'shadow Cerca le piccole cose colorate: ogni volta che ne vedrai una, io sono lì con te.',
 		'shadow Promettimi che le cercherai!',
 
-		'dad ...',
+		'dad …',
 		async () => await pauseTextBox(),
-		'dad ...va bene, te lo prometto. Le cercherò.',
+		'dad …va bene, te lo prometto. Le cercherò.',
 		
 		{'Choice': {
 			'Let_Go':{
@@ -1572,7 +1572,7 @@ monogatari.script ({
 		// La text box era stata nascosta in Lascia_Andare
 		() => showTextBox(),
 		'dad Ho passato tutta la vita a stringere i pugni pensando di dover tenere il più stretto possibile tutto ciò che di più prezioso avessi, trattenendo il respiro, soffocando la voce.',
-		'dad Poi un giorno ho aperto le mani…ed è lì che ho capito.',
+		'dad Poi un giorno ho aperto le mani… ed è lì che ho capito.',
 		'dad Pensiamo che il tempo ci appartenga, ma siamo noi ad appartenergli.',
 		// Solo ora il giocatore puo' cliccare la porta, e la porta inizia a lampeggiare
 		() => {
@@ -1602,12 +1602,12 @@ monogatari.script ({
 			showTextBox();
 		},
 		
-		"dad L'ho appeso proprio qui.",
+		"dad L’ho appeso proprio qui.",
 		'dad "Guarda papà, siamo noi due."',
-		"dad Era l'ultima cosa che avevi colorato prima di quel giorno.",
-		"dad Mi hai fatto promettere che non l'avrei mai tolto ed io te l'ho giurato.",
-		'dad A lungo ho pensato che questo fosse solo il ricordo di un mondo che ti è stato rubato...un richiamo costante a quella frazione di secondo che ha distrutto tutto.',
-		"dad Continuo a guardarlo...e mi accorgo di come hai disegnato il sole. Non piccolo, non sfocato, l'hai fatto gigante.",
+		"dad Era l’ultima cosa che avevi colorato prima di quel giorno.",
+		"dad Mi hai fatto promettere che non l’avrei mai tolto ed io te l’ho giurato.",
+		'dad A lungo ho pensato che questo fosse solo il ricordo di un mondo che ti è stato rubato… un richiamo costante a quella frazione di secondo che ha distrutto tutto.',
+		"dad Continuo a guardarlo… e mi accorgo di come hai disegnato il sole. Non piccolo, non sfocato, l’hai fatto gigante.",
 		'dad Per te il mondo era davvero un posto pieno di luce. Nel tuo modo di vedere le cose, tu vedevi solo noi due, felici, che camminavamo insieme su quel prato verde.',
 		
 		() => hideTextBox(false),
@@ -1631,8 +1631,8 @@ monogatari.script ({
 		'wait 2000',
 		() => showTextBox(),
 
-		'dad Ogni volta che vorrò arrendermi, guaderò questo sole.',
-		"dad Imparerò di nuovo a camminare, non più nell'ombra di quello che è successo, ma nella luce che mi hai lasciato.",
+		'dad Ogni volta che vorrò arrendermi, guarderò questo sole.',
+		"dad Imparerò di nuovo a camminare, non più nell’ombra di quello che è successo, ma nella luce che mi hai lasciato.",
 		'dad Continuerò a tenerti per mano, in ogni passo che farò da oggi in poi.',
 
 		() => hideTextBox(false),
@@ -1932,8 +1932,8 @@ monogatari.script ({
 		// --- PARTE 1: tenda ancora chiusa (lo swap e' rimandato: deferSwap
 		//     nella entry di SCENE_IMAGES, vedi lockContrattazioneObject) ---
 		'dad La stessa oscurità che avvolgeva la stanza sembrava essere cresciuta come edera avvolta attorno ai miei polmoni, non mi lasciava respirare più.',
-		'dad Passavo davanti la tua porta fingendo tu fossi lì dentro a giocare con i tuoi trenini e le tue bambole, ma non avendo mai il coraggio di entrare…',
-		'dad …non potevo rendere reale la mia paura più grande, ma era arrivato il momento di riportare un po’ di luce, dentro e fuori me.',
+		'dad Passavo davanti alla tua porta fingendo tu fossi lì dentro a giocare con i tuoi trenini e le tue bambole, ma non avendo mai il coraggio di entrare…',
+		'dad …non potevo rendere reale la mia paura più grande, ma era arrivato il momento di riportare un po’ di luce, dentro e fuori di me.',
 
 		// --- Apertura: swap tenda_chiusa -> tenda_aperta, poi la luce entra ---
 		async () => {
@@ -1949,7 +1949,7 @@ monogatari.script ({
 		'dad La luce… da quanto non la lasciavo entrare!',
 		'dad La stanza è rimasta intatta, ferma nel tempo, ma tu non ci sei più, non qua dentro, almeno.',
 		'dad Non sei qui, ma sei e sarai in ogni cosa che farò, ogni suono, profumo, gesto e canzone che farà parte delle mie giornate.',
-		'dad Non voglio più rinunciare alla vita, troverò la forza! Per me…per te.',
+		'dad Non voglio più rinunciare alla vita, troverò la forza! Per me… per te.',
 		() => {
 			hideTextBox();
 			SceneUtility.unlockItemWrapper();
@@ -1962,7 +1962,7 @@ monogatari.script ({
 
 		// --- PARTE 1: giochi ancora sparsi (swap rimandato: deferSwap
 		//     nella entry di SCENE_IMAGES, vedi lockContrattazioneObject) ---
-		"dad All'inizio, ogni oggetto era un colpo al cuore. Il trenino di legno riverso sul pavimento, i supereroi pronti a salvare un mondo che per me era crollato, i mattoncini colorati ancora incastrati tra loro, impolverati.",
+		"dad All’inizio, ogni oggetto era un colpo al cuore. Il trenino di legno riverso sul pavimento, i supereroi pronti a salvare un mondo che per me era crollato, i mattoncini colorati ancora incastrati tra loro, impolverati.",
 		'dad Per tanto, troppo tempo ho pensato che riordinare questa cesta significasse cancellare la tua presenza, la tua memoria.',
 		'dad Mi ero convinto che rimettere a posto le tue cose volesse dire accettare la tua scomparsa, dimenticare il suono della tua risata che riempiva i corridoi di questa casa, mi sembrava un tradimento.',
 
@@ -1977,7 +1977,7 @@ monogatari.script ({
 
 		// --- PARTE 2: giochi sistemati ---
 		"dad Ma oggi, mentre riponevo il tuo orsacchiotto, non ho sentito il peso del vuoto che mi ha attanagliato la gola e lo stomaco in queste settimane, ho sentito solo un senso di profonda, dolorosa gratitudine.",
-		'dad Sistemare i tuoi giochi ha dato un nuovo posto ai ricordi, ha sciolto il groviglio di pensieri e ha dato un ordine alle cose….',
+		'dad Sistemare i tuoi giochi ha dato un nuovo posto ai ricordi, ha sciolto il groviglio di pensieri e ha dato un ordine alle cose…',
 		'dad Mi manchi.',
 		() => {
 			hideTextBox();

@@ -184,7 +184,7 @@ monogatari.translations({
 		'LocalStorageWarning':'Local Storage non disponibile in questo browser',
 		'Log':                'Registro',
 		'Music':              'Volume musica',
-		'NewContent':         "Sono disponibili nuovi contenuti, ricarica la pagina per ottenere l'ultima versione",
+		'NewContent':         "Sono disponibili nuovi contenuti, ricarica la pagina per ottenere l’ultima versione",
 		'NoSavedGames':       'Nessuna partita salvata',
 		'NoAutoSavedGames':   'Nessun salvataggio automatico',
 		'NoDialogsAvailable': 'Nessun dialogo disponibile. I dialoghi appariranno qui man mano che compaiono',

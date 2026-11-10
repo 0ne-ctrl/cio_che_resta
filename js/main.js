@@ -5444,7 +5444,7 @@ const ClearTimeScreen = {
 		const overlay = document.createElement('div');
 		overlay.className = 'clear-time-overlay';
 		overlay.innerHTML = `
-			<div class="clear-time-title">Clear Time</div>
+			<div class="clear-time-title">Tempo di gioco</div>
 			<div class="clear-time-value">${GameTimer.format(GameTimer.getElapsedMs())}</div>
 			<div class="clear-time-hint">Titoli di coda ></div>
 		`;
