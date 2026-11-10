@@ -5,7 +5,7 @@ const name = 'Ciò che resta';
 
 // The version of the cache, changing this will force everything to be cached
 // again.
-const version = '0.1.71';
+const version = '0.1.72';
 
 const files = [
 
@@ -48,6 +48,8 @@ const files = [
 	'assets/icons/icon_310x150.png',
 	'assets/icons/icon_310x310.png',
 	'assets/icons/icon_512x512.png',
+	'assets/icons/icon_maskable_192x192.png',
+	'assets/icons/icon_maskable_512x512.png',
 ];
 
 self.addEventListener ('install', (event) => {
