@@ -46,7 +46,8 @@ class TypeCentered extends Monogatari.Action {
 			: statement.TypeCentered;
 
 		this.text = options.text ?? '';
-		this.speed = options.speed ?? 55;
+		// Segue "Velocità testo" (preferenza in ms/carattere, default 20 → 55ms)
+		this.speed = options.speed ?? Math.round(55 * (monogatari.preference('TextSpeed') ?? 20) / 20);
 		this.sound = options.sound ?? 'assets/sounds/typewriter.mp3';
 		this.volume = options.volume ?? 0.25;
 		this.fontFamily = options.fontFamily ?? 'Pangolin';	//old - monospace
@@ -94,6 +95,7 @@ class TypeCentered extends Monogatari.Action {
 			};
 
 			const closeAndContinue = () => {
+				document.removeEventListener ('keydown', onKey);
 				container.remove ();
 				resolve ();
 			};
@@ -107,7 +109,14 @@ class TypeCentered extends Monogatari.Action {
 				closeAndContinue ();
 			};
 
+			const onKey = (e) => {
+				if (e.key !== 'Enter' && e.key !== ' ') return;
+				e.preventDefault ();
+				onClick ();
+			};
+
 			container.addEventListener ('click', onClick);
+			document.addEventListener ('keydown', onKey);
 
 			audio.play ().catch (() => {
 				// Se il browser blocca l'audio, il testo continua comunque.
@@ -589,11 +598,13 @@ const PhoneUI = {
 
 	/**
 	 * waitUntilAllNotificationsRead - Returns a promise that resolves when the
-	 * unread notifications count reaches zero or when the timeout elapses.
+	 * unread notifications count reaches zero (or when an explicit timeout elapses).
 	 * Useful to pause game flow until the player opens the phone and reads
 	 * the notifications (which marks them as read).
 	 */
-	waitUntilAllNotificationsRead(timeout = 20000, pollInterval = 150) {
+	// Nessun timeout di default: i chiamanti bloccano il telefono subito dopo,
+	// e con un timeout le scelte restavano chiuse dentro il telefono (softlock).
+	waitUntilAllNotificationsRead(timeout = Infinity, pollInterval = 150) {
 		return new Promise((resolve) => {
 			const start = Date.now();
 
@@ -1732,7 +1743,8 @@ const Glitch={
 
 		//Avvio il battito cardiaco
 		await HeartbeatManager.load(); //Mi assicuro che i buffer con gli audio siano caricati prima di partire
-		HeartbeatManager.start({bpm: 75, volume: 1, fadeIn: 1});
+		await HeartbeatManager.start({bpm: 75, volume: 1, fadeIn: 1});
+		this.failCount = 0;
 
 		try {
 			//Gestione delle fasi fino al loro completamento
@@ -1741,8 +1753,10 @@ const Glitch={
 				store.glitchGamePhase = this.currentPhaseIndex + 1;
 
 				this.beginPhase(phase);
-				
-				const result = await WordsGame.start(phase);
+
+				// Uscita di sicurezza: dopo 3 fallimenti ogni fase concede il 50% di tempo in più
+				const playable = this.failCount >= 3 ? { ...phase, timeLimit: phase.timeLimit * 1.5 } : phase;
+				const result = await WordsGame.start(playable);
 				this.endPhaseVisuals();
 
 				if (!this.active) {
@@ -1754,14 +1768,14 @@ const Glitch={
 					switch (this.currentPhaseIndex){
 						case 1: 
 							//Sincronizzo la decelerazione con l'inizio di una nuova fase, e decelero a un bpm sempre più alto
-							await this.cooldown(1400, 0.16, { bpmFrom: 160, bpmTo: 90});
+							await this.cooldown(1400, 0.16, { from: 160, to: 90 });
 							await new Promise(resolve => {
 								this._phaseResolvers.phase1 = resolve;
 								monogatari.run('jump DialogoGlitch_Fase1');
 							});
 							break;
 						case 2: 
-							await this.cooldown(700, 0.05, {bpmFrom: 170, bpmTo: 110});
+							await this.cooldown(700, 0.05, { from: 170, to: 110 });
 							await new Promise(resolve => {
 								this._phaseResolvers.phase2 = resolve;
 								monogatari.run('jump DialogoGlitch_Fase2');
@@ -1791,7 +1805,8 @@ const Glitch={
 						await this.playRestartFadeOut();
 					}
 
-					this.resetToFirstPhase();
+					this.failCount++;
+					await this.resetToFirstPhase();
 				}
 			}
 			if (!this.active) return false;
@@ -1826,10 +1841,11 @@ const Glitch={
 		const maxDuration = this.phases[0].timeLimit; // 10000ms, la fase più lunga
 		const minDuration = this.phases[2].timeLimit; // 8000ms, la fase più corta
 
-		// Mi assicura che il battito sia in riproduzione prima di accelerare in caso di reset
-		if (!HeartbeatManager.isPlaying) {
-			HeartbeatManager.start({ bpm: 75, volume: 0.4, fadeIn: 0.3 });
-		}
+		// Mi assicura che il battito sia in riproduzione prima di accelerare in caso di reset.
+		// La rampa BPM della fase parte DOPO start(): start() azzera ramp e bpm.
+		const heartbeatReady = HeartbeatManager.isPlaying
+			? Promise.resolve()
+			: HeartbeatManager.start({ bpm: 75, volume: 0.4, fadeIn: 0.3 });
 
 		// Normalizza: 0 = fase più lunga, 1 = fase più corta
     	const urgency = (maxDuration - phase.timeLimit) / (maxDuration - minDuration);
@@ -1846,7 +1862,7 @@ const Glitch={
 	// BPM target:     ~94 (fase 1) → ~158 (fase 3)
 	// Formula: BPM base (70) + intensità × range (170)
 	const phaseBpm = 70 + (phase.intensityStart * 170);
-	HeartbeatManager.setBpm(phaseBpm, { duration: phase.timeLimit / 1000 });
+	heartbeatReady.then(() => HeartbeatManager.setBpm(phaseBpm, { duration: phase.timeLimit / 1000 }));
 	},
 
 	runLoop(phase) {
@@ -1991,8 +2007,9 @@ const Glitch={
 		WordsGame.reset();
 		this.resetRabbiaObjects();
 		
-		// Riavvio il battito per il nuovo tentativo
-		HeartbeatManager.start({ bpm: 75, volume: 0.4, fadeIn: 0.5 });
+		// Riavvio il battito per il nuovo tentativo (atteso: altrimenti start()
+		// azzererebbe la rampa BPM impostata subito dopo da beginPhase)
+		return HeartbeatManager.start({ bpm: 75, volume: 0.4, fadeIn: 0.5 });
 	},
 
 	//Stessa animazione, ma a specchio e molto più brusca. Evito l'effetto "taglio netto".
@@ -3950,6 +3967,8 @@ const BreathingGame = {
 	cycle: 0,         // cicli completati dall'inizio del run corrente
 	totalCycles: 3,   // numero di cicli prima del completamento
 	isHeld: false,    // true quando il giocatore tiene premuto il dito
+	failCount: 0,     // errori nel run corrente
+	maxFails: 4,      // oltre questa soglia gli errori vengono ignorati: il respiro prosegue da solo
 
 	// Fase attualmente in esecuzione. Usata in onUp per decidere se il rilascio
 	// del dito deve causare un riavvio (solo nelle fasi "attive", non in 'pause').
@@ -4043,6 +4062,7 @@ const BreathingGame = {
 
 		this.state = 'running';
 		this.cycle = 0;
+		this.failCount = 0;
 		this.isHeld = false;
 		this.currentPhase = 'pause';
 		this.currentScale = this.scaleMin;
@@ -4367,23 +4387,26 @@ const BreathingGame = {
 	//   3. Riparte _startPhase(0): il respiro corrente ricomincia dall'inspirazione.
 	// -------------------------------------------------------------------------
 	_restart() {
+		// Uscita di sicurezza (accessibilità): dopo troppi errori il minigioco
+		// smette di punire e lascia completare i respiri restanti.
+		if (++this.failCount > this.maxFails) return;
+
 		clearTimeout(this.phaseTimer);
 		clearTimeout(this._holdGraceTimer);
 		if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null; }
 
 		this.currentPhase = 'pause';
 
-		// Resetta lo stato del tocco: ogni nuovo ciclo ricomincia da zero,
-		// il giocatore deve premere esplicitamente per la nuova 'inhale'.
-		this.isHeld = false;
-		this.overlay.classList.remove('held');
+		// isHeld NON si azzera: rispecchia il dito reale. Azzerarlo con il dito
+		// ancora giù faceva fallire di nuovo la 'inhale' successiva (timer di
+		// grazia) a chi stava già tenendo premuto.
 
 		this.label.classList.remove('visible');
 
 		// Ri-mostra l'hint come promemoria (testo resettato a "inhale")
 		if (this.hint) {
 			this.hint.textContent = 'Tieni premuto il dito';
-			this.hint.classList.add('visible');
+			this.hint.classList.toggle('visible', !this.isHeld);
 		}
 
 		// Animazione di rientro: dal punto corrente → scaleMin in 700ms
@@ -4700,6 +4723,10 @@ const AudioManager = {
 		const volume = this.getVolume(options.volume ?? 1);
 		const fade = options.fade ?? 0;
 
+		// Un fadeOut ancora in corso fermerebbe la traccia appena ripartita
+		track._cancelFadeOut?.();
+		track.gain.gain.cancelScheduledValues(context.currentTime);
+
 		// Imposta il loop solo se passato esplicitamente, così una ripresa
 		// con play(id) senza opzioni preserva il loop impostato in precedenza
 		if ('loop' in options) {
@@ -4739,6 +4766,7 @@ const AudioManager = {
 
 		track.audio.pause();
 		track.audio.currentTime = 0;
+		clearTimeout(track._glitchTimer);
 	},
 
 	/**
@@ -4768,11 +4796,19 @@ const AudioManager = {
 		// Rampa lineare fino a 0
 		track.gain.gain.linearRampToValueAtTime(0, context.currentTime + duration);
 
+		track._cancelFadeOut?.();
 		return new Promise(resolve => {
-			setTimeout(() => {
+			const timer = setTimeout(() => {
+				track._cancelFadeOut = null;
 				this.stop(id);
 				resolve();
 			}, duration * 1000);
+			// Annullato da play(): la traccia resta accesa, ma chi aspetta il fadeOut prosegue
+			track._cancelFadeOut = () => {
+				clearTimeout(timer);
+				track._cancelFadeOut = null;
+				resolve();
+			};
 		});
 	},
 
@@ -4847,6 +4883,10 @@ const AudioManager = {
 			track.source.connect(track.glitchGain);
 			track.glitchGain.connect(track.gain);
 		}
+
+		// Il loop del glitch si ferma con stop() o a fine traccia (prima girava per sempre)
+		clearTimeout(track._glitchTimer);
+		track.audio.addEventListener('ended', () => clearTimeout(track._glitchTimer), { once: true });
 
 		const startInterval = options.interval ?? 300;
 		const endInterval = options.endInterval ?? 30;
@@ -5375,7 +5415,7 @@ const ContentWarning = {
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         overlay.classList.add('visible');
 
-        await new Promise(resolve => overlay.addEventListener('click', resolve, { once: true }));
+        await waitForTap(overlay);
 
         overlay.classList.remove('visible');
         await sleep(600); // combacia con transition CSS
@@ -5413,7 +5453,7 @@ const ClearTimeScreen = {
 		await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 		overlay.classList.add('visible');
 
-		await new Promise(resolve => overlay.addEventListener('click', resolve, { once: true }));
+		await waitForTap(overlay);
 
 		overlay.classList.remove('visible');
 		setTimeout(() => overlay.remove(), 800);
@@ -5474,35 +5514,11 @@ const EndCredits = {
 		await nextFrames();
 		skipButton.classList.add('visible');
 		
-		// Variabile per tracciare se è stato saltato
-		let skipped = false;
-		
-		skipButton.addEventListener('click', () => {
-			if (!skipped) {
-				skipped = true;
-				roll.style.transition = 'none';
-				roll.style.transform = `translateY(-${distance}px)`;
-				roll.remove();
-				skipButton.remove();
-				// Vai direttamente a "Fine"
-				setTimeout(() => {
-					const fine = document.createElement('div');
-					fine.className = 'credits-fine';
-					fine.textContent = 'Fine';
-					overlay.appendChild(fine);
-					nextFrames().then(() => {
-						fine.classList.add('visible');
-					});
-				}, 100);
-			}
-		});
+		// Il rullo finisce da solo oppure al tocco su "salta": in entrambi i casi si passa a "Fine"
+		await Promise.race([wait(duration + 500), waitForTap(skipButton)]);
+		roll.remove();
+		skipButton.remove();
 
-		await wait(duration + 500);
-		if (!skipped) {
-			roll.remove();
-			skipButton.remove();
-		}
-		
 		// "Fine" resta a schermo 10 secondi, poi serve un click per uscire
 		const fine = document.createElement('div');
 		fine.className = 'credits-fine';
@@ -5518,9 +5534,7 @@ const EndCredits = {
 		overlay.appendChild(hint);
 		await nextFrames();
 		hint.classList.add('visible');
-		await new Promise(resolve => {
-			overlay.addEventListener('click', resolve, { once: true });
-		});
+		await waitForTap(overlay);
 
 		// Si risolve subito ('end' riporta al menu sotto il nero); l'overlay
 		// si dissolve da solo poco dopo, rivelando il menu principale.
@@ -5551,6 +5565,12 @@ const StartIntro = {
 
 			setTimeout(resolve, 3000);
 		});
+	},
+
+	// Senza questo, dopo 'end' il menu principale resta con i pulsanti nascosti
+	reset() {
+		document.querySelector('main-menu')?.classList.remove('intro-hide-buttons');
+		document.querySelector('.main-title')?.classList.remove('intro-zoom');
 	}
 };
 
@@ -6097,6 +6117,11 @@ const DebugMenu = {
 		// WordsGame blocca lo scroll del body: qui lo ripristiniamo.
 		document.body.style.overflow = '';
 
+		// L'icona "osserva" blocca tutti i click (html.block-all) finché è visibile;
+		// un toggle telefono rimasto bloccato renderebbe il telefono inapribile.
+		WatchOnlyIcon.hide();
+		PhoneToggle.lockToggle(false);
+
 		// Nasconde il contatore oggetti della scena precedente.
 		ObjectCounter.hide();
 
@@ -6109,7 +6134,7 @@ const DebugMenu = {
 		hideTextBox(false);
 
 		// Spegne i filtri visivi delle transizioni (blur, B/N, saturazione).
-		['blur-overlay', 'bw-filter-overlay', 'saturation-overlay'].forEach((id) => {
+		['blur-overlay', 'bw-filter-overlay', 'saturation-overlay', 'dim-overlay'].forEach((id) => {
 			document.getElementById(id)?.classList.remove('visible', 'active');
 		});
 
@@ -6225,6 +6250,24 @@ function lerp (a, b, t){
 	return a + (b - a) * t;
 } 
 
+// Avanza al tap/click sull'elemento oppure con Invio/Spazio (accessibilità da tastiera)
+function waitForTap(element) {
+	return new Promise(resolve => {
+		const onKey = (e) => {
+			if (e.key !== 'Enter' && e.key !== ' ') return;
+			e.preventDefault();
+			done();
+		};
+		const done = () => {
+			element.removeEventListener('click', done);
+			document.removeEventListener('keydown', onKey);
+			resolve();
+		};
+		element.addEventListener('click', done);
+		document.addEventListener('keydown', onKey);
+	});
+}
+
 function sleep(ms){
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -6279,6 +6322,7 @@ $_ready (() => {
 	monogatari.init ('#monogatari').then (() => {
 
 		//Listener del pulsante start che fa partire l'animazione monogatari prima di far partire il gioco
+		let introRunning = false;
 		document.addEventListener('click', async (e) => {
 			const startBtn = e.target.closest('[data-action="start"], [data-open="game"]');
 			if (!startBtn) return;
@@ -6286,8 +6330,14 @@ $_ready (() => {
 			e.preventDefault();
 			e.stopImmediatePropagation();
 
+			// Un secondo click durante i 3s di intro lancerebbe 'jump Tutorial' due volte
+			if (introRunning) return;
+			introRunning = true;
+
 			await StartIntro.play();
-			monogatari.run('jump Tutorial'); // o quale che sia il label iniziale
+			monogatari.run('jump Tutorial');
+			StartIntro.reset();
+			introRunning = false;
 		}, true); // capture: true per anticipare il listener nativo di Monogatari
 
 		

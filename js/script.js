@@ -345,6 +345,14 @@ monogatari.script ({
 	'Torcia': [
 		async () => {
 			PhoneUI.setTime("03:36");
+
+			// Come in Contrattazione: il loop confronta gli oggetti visti con quelli della scena
+			const store = monogatari.storage();
+			store.clickedObjects = [];
+			store.allObjects = SCENE_IMAGES.torcia
+				.filter(item => item.dialog)
+				.map(item => item.id);
+
 			await SceneFade.toVisible();
 			await AudioManager.play('fan', {
 				loop: true,
@@ -1502,7 +1510,7 @@ monogatari.script ({
 			await SceneFade.toHidden();
 			await AudioManager.play('rage', {
 				loop: true,
-				volume: 75,
+				volume: 0.5,
 				fade: 2
 			})
 		},

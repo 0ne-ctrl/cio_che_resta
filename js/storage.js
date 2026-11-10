@@ -6,7 +6,8 @@ monogatari.storage ({
 		name: ''
 	},
 	clickedObjects: [],
-	allObjects:['cornice', 'mobile', 'porta', 'pianta'],
+	// Default = oggetti della Torcia; ogni scena a oggetti lo reimposta al suo ingresso
+	allObjects: ['cornice', 'pianta_2', 'porta', 'mobile'],
 	lastClickedObject: null,
 	// objectDescriptions: {
 	// 	obj1: "Descrizione oggetto 1, pappappero.",
