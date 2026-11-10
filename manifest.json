@@ -1,8 +1,11 @@
 {
 	"short_name": "Ciò che resta",
 	"name": "Ciò che resta",
-	"background_color": "#F7F7F7",
-	"theme_color": "#F7F7F7",
+	"description": "Una visual novel sul lutto, attraverso le cinque fasi del dolore: negazione, rabbia, contrattazione, depressione e accettazione.",
+	"lang": "it",
+	"id": "./",
+	"background_color": "#000000",
+	"theme_color": "#000000",
 	"orientation": "portrait",
 	"display": "fullscreen",
 	"start_url": "index.html",
@@ -70,8 +73,7 @@
 		{
 			"src": "assets/icons/icon_512x512.png",
 			"type": "image/png",
-			"sizes": "512x512",
-			"purpose": "any maskable"
+			"sizes": "512x512"
 		}
 	]
 }

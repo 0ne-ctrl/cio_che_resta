@@ -5,7 +5,7 @@ const name = 'Ciò che resta';
 
 // The version of the cache, changing this will force everything to be cached
 // again.
-const version = '0.1.66';
+const version = '0.1.67';
 
 const files = [
 
@@ -15,6 +15,7 @@ const files = [
 	'manifest.json',
 
 	// Engine Files
+	'engine/debug/debug.js',
 	'engine/core/monogatari.css',
 	'engine/core/monogatari.js',
 
@@ -80,11 +81,14 @@ self.addEventListener ('fetch', (event) => {
 	event.respondWith (
 		caches.match (event.request).then ((cached) => {
 			function fetchedFromNetwork (response) {
-				const cacheCopy = response.clone ();
-
-				caches.open (`${name}-v${version}`).then (function add (cache) {
-					cache.put (event.request, cacheCopy);
-				});
+				// Solo risposte complete e same-origin: niente 404/errori, niente 206
+				// (richieste Range dell'audio, che cache.put rifiuta) né risposte opache.
+				if (response.ok && response.status === 200 && response.type === 'basic') {
+					const cacheCopy = response.clone ();
+					caches.open (`${name}-v${version}`)
+						.then ((cache) => cache.put (event.request, cacheCopy))
+						.catch (() => {}); // cache piena o richiesta non memorizzabile: si serve comunque dalla rete
+				}
 				return response;
 			}
 
