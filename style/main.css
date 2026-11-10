@@ -65,7 +65,8 @@ button:hover {
     left: 50%;
     transform: translate(-50%, -50%);
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: clamp(3.5rem, 9vw, 7rem);
+    /* min(…, 12vw): sui telefoni stretti (< ~467px) il minimo di 3.5rem arrivava ai bordi; sopra resta invariato */
+    font-size: min(clamp(3.5rem, 9vw, 7rem), 12vw);
     font-weight: 700;
     font-style: italic;
     color: rgba(220, 212, 198, 0.92);
