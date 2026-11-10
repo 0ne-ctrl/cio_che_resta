@@ -1490,23 +1490,24 @@ const TorchGlow = {
 	}
 };
 
-// Scritta lampeggiante nella scena torcia: appare se dopo 3 secondi
-// il giocatore non ha ancora evidenziato nessun oggetto con dialogo.
+// Scritta lampeggiante di suggerimento: appare dopo `delay` ms se il giocatore
+// non ha ancora interagito. Nata per la torcia, usata anche dal minigioco della
+// rabbia (tutorial e prima fase, vedi WordsGame.hintText).
 const TorchHint = {
 	el: null,
 	timer: null,
 
-	arm(){
+	arm(text = 'Esplora i vari elementi della stanza', delay = 3000){
 		this.dismiss();
 		this.timer = setTimeout(() => {
 			if (!this.el) {
 				this.el = document.createElement('div');
 				this.el.id = 'torch-hint';
-				this.el.textContent = 'Esplora i vari elementi della stanza';
 				document.body.appendChild(this.el);
 			}
+			this.el.textContent = text;
 			this.el.classList.add('visible');
-		}, 3000);
+		}, delay);
 	},
 
 	dismiss(){
@@ -1776,7 +1777,10 @@ const Glitch={
 
 				// Uscita di sicurezza: dopo 3 fallimenti ogni fase concede il 50% di tempo in più
 				const playable = this.failCount >= 3 ? { ...phase, timeLimit: phase.timeLimit * 1.5 } : phase;
+				// Prima fase: se il giocatore resta fermo, ricompare l'istruzione del tutorial
+				if (this.currentPhaseIndex === 0) TorchHint.arm(WordsGame.hintText, 3000);
 				const result = await WordsGame.start(playable);
+				TorchHint.dismiss();
 				this.endPhaseVisuals();
 
 				if (!this.active) {
@@ -2348,6 +2352,7 @@ const Glitch={
 	},
 
 	async stop(completed = false) {
+		TorchHint.dismiss();
 		this.active = false;
 		this.phaseResolved = true;
 		clearTimeout(this.timer);
@@ -2385,6 +2390,9 @@ const WordsGame = {
 	phaseTimer: null,
 	resolver: null,
 	isActive: false,
+
+	// Istruzione mostrata nel tutorial e, se il giocatore resta fermo, nella prima fase
+	hintText: 'Scaccia i pensieri: trascinali fuori dallo schermo',
 
 	config: {
 		spawnDelay: 700,
@@ -2570,6 +2578,9 @@ const WordsGame = {
 					})
 				});
 
+				// L'istruzione compare insieme all'oscillazione della manina
+				TorchHint.arm(this.hintText, 1400);
+
 				setTimeout(() => {
 					// Wiggle: solo estetico, non tocca transform del wrapper (riservato al drag reale)
 					wordObj.label.style.animation = "rageTutorialWiggle 900ms ease-in-out infinite";
@@ -2584,6 +2595,7 @@ const WordsGame = {
 				// Overrida solo il cleanup finale: stessa meccanica di endDrag, ma risolve il tutorial invece di resolveRun
 				const originalRemove = wordObj.wrapper.remove.bind(wordObj.wrapper);
 				wordObj.wrapper.remove = () => {
+					TorchHint.dismiss();
 					originalRemove();
 					overlay.remove();
 					this.element.classList.remove("visible");
@@ -2762,7 +2774,10 @@ const WordsGame = {
 		// non viene interrotto dallo scroll del browser.
 		wrapper.addEventListener("pointerdown", (event) => {
 			if (!this.isCurrentRun(runId)) return;
-			
+
+			// Il giocatore ha capito il gesto: via l'istruzione (tutorial e prima fase)
+			TorchHint.dismiss();
+
 			event.preventDefault();
 
 			// Il capture fa arrivare pointermove/pointerup al wrapper anche se

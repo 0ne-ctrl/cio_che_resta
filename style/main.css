@@ -1749,13 +1749,18 @@ body.show-textbox .phone-toggle {
     font-size: 1.2em;
     text-align: center;
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
-    z-index: 2; /* sopra .night-overlay (1), sotto i dialoghi */
+    /* Sopra .word-game (100) per la rabbia; nella torcia viene tolta prima che si apra un dialogo */
+    z-index: 101;
     pointer-events: none;
     opacity: 0;
 }
 
 #torch-hint.visible{
     animation: torch-hint-blink 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce){
+    #torch-hint.visible{ animation: none; opacity: 1; }
 }
 
 @keyframes torch-hint-blink{
